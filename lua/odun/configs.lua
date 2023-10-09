@@ -52,11 +52,15 @@ vim.cmd([[highlight WinSeparator guifg=#8B8B8B guibg=NONE]])
 
 -------------------SnipRun Config------------------
 ---------------------------------------------------
+require("notify").setup({
+  background_colour = "#000000",
+})
+
 require('sniprun').setup({
   display = {"NvimNotify"},
 
   display_options = {
-    notification_timeout = 5   -- timeout for nvim_notify output
+    notification_timeout = -1   -- timeout for nvim_notify output
   },
 })
 
@@ -166,8 +170,10 @@ require('staline').setup{
 ---------FOR THE INDENTATION LINES-------------
 -----------------------------------------------
 
-vim.opt.listchars:append("space:⋅")
---vim.opt.listchars:append("eol:↴")
+vim.opt.list = true
+--vim.opt.listchars:append("space:⋅")
+--vim.opt.listchars:append "eol:↴"
+
 vim.cmd [[highlight IndentBlanklineIndent1 guifg=#808080 gui=nocombine]]
 vim.cmd [[highlight IndentBlanklineIndent2 guifg=#808080 gui=nocombine]]
 vim.cmd [[highlight IndentBlanklineIndent3 guifg=#808080 gui=nocombine]]
@@ -203,6 +209,10 @@ require("indent_blankline").setup {
 ----------------Auto Pairs config ----------------
 --------------------------------------------------
 require('nvim-autopairs').setup{}
+
+local Rule = require('nvim-autopairs.rule')
+local npairs = require('nvim-autopairs')
+npairs.add_rule(Rule("__", "__", "python"))
 
 ----------------Highlight Yank------------------
 ------------------------------------------------
@@ -262,14 +272,14 @@ nvim_lsp.jedi_language_server.setup{
         -- Customize hover.nvim appearance using 'lsp.float' settings
         hover.setup({
             border = {
-                { "╭", "FloatBorder" },
-                { "─", "FloatBorder" },
-                { "╮", "FloatBorder" },
-                { "│", "FloatBorder" },
-                { "╯", "FloatBorder" },
-                { "─", "FloatBorder" },
-                { "╰", "FloatBorder" },
-                { "│", "FloatBorder" },
+              { "╭", "FloatBorder" },
+              { "─", "FloatBorder" },
+              { "╮", "FloatBorder" },
+              { "│", "FloatBorder" },
+              { "╯", "FloatBorder" },
+              { "─", "FloatBorder" },
+              { "╰", "FloatBorder" },
+              { "│", "FloatBorder" },
             },
             winblend = 10, -- Transparency (0-100)
             cursorline = false, -- Highlight line under cursor
@@ -326,3 +336,31 @@ callback = function()
   require("lint").try_lint()
   end,
 })
+
+--------- Run Code From Vim(code_runner)--------------
+------------------------------------------------------
+
+require('code_runner').setup({
+  mode = 'float', -- Set mode to float
+  filetype = {
+    java = {
+      "cd $dir &&",
+      "javac $fileName &&",
+      "java $fileNameWithoutExt"
+    },
+    python = "python3 -u",
+    typescript = "deno run",
+    rust = {
+      "cd $dir &&",
+      "rustc $fileName &&",
+      "$dir/$fileNameWithoutExt"
+    },
+  },
+  float = {
+    border = "double",
+    border_hl = "GreenBorder", -- Highlight group for the window border (use your desired highlight group)
+  },
+})
+
+-- Define the GreenBorder highlight group
+vim.cmd([[highlight GreenBorder guifg=#00FF00]])

@@ -116,7 +116,10 @@ return require("packer").startup(
         use 'tamton-aquib/staline.nvim'
 
         -- Indentation Line
-        use 'lukas-reineke/indent-blankline.nvim'
+        use {
+            'lukas-reineke/indent-blankline.nvim',
+            tag = 'v2.0.0'
+        }
 
         -- Install Sniprun
         use { 'michaelb/sniprun', run = 'sh ./install.sh'}
@@ -165,6 +168,12 @@ return require("packer").startup(
                 {"nvim-treesitter/nvim-treesitter"}
             }
         }
+        -- Rainmboe delimeter for parenthesis color
+        use {"hiphish/rainbow-delimiters.nvim"}
+
+        -- Run code from nvim
+        use 'CRAG666/code_runner.nvim'
+
         -- ALE linter
         --use {'dense-analysis/ale'}
 
