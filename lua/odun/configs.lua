@@ -3,6 +3,7 @@
 
 -- Require the NvimTree plugin
 -- local nvim_tree = require('nvim-tree')
+require("bufferline").setup{}
 
 -- disable netrw at the very start of your init.lua
 vim.g.loaded_netrw = 1
@@ -48,7 +49,7 @@ vim.opt.termguicolors = true
 vim.g.nvim_tree_width = 20
 
 -- nvim-tree transparent BG
-vim.cmd("autocmd Colorscheme * highlight NvimTreeNormal guibg=none guifg=#9da5b3")
+-- vim.cmd("autocmd Colorscheme * highlight NvimTreeNormal guibg=none guifg=#9da5b3")
 
 -- Set `fg` to the color you want your window separators to have
 vim.cmd([[highlight WinSeparator guifg=#8B8B8B guibg=NONE]])
@@ -98,9 +99,6 @@ vim.api.nvim_set_keymap('n', '<F10>', ':SnipRun<CR>', { silent = true })
 -- Map F10 to SnipRun in visual mode
 vim.api.nvim_set_keymap('v', '<F10>', ':SnipRun<CR>', { silent = true })
 
------------------------------------------------------------------------------
--- For nvim-web-devicons
-require'nvim-web-devicons'.get_icons()
 
 --------------For Status Bar-----------------
 --------------------------------------------
@@ -367,3 +365,9 @@ require('code_runner').setup({
 
 -- Define the GreenBorder highlight group
 vim.cmd([[highlight GreenBorder guifg=#00FF00]])
+
+-- Gitblame config
+require('gitblame').setup {
+     --Note how the `gitblame_` prefix is omitted in `setup`
+    enabled = false,
+}

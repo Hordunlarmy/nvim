@@ -86,11 +86,5 @@ vim.cmd([[ set expandtab ]])
 vim.cmd([[ set guicursor= ]])
 vim.cmd([[ set cursorline ]])
 vim.cmd([[ syntax on ]])
-vim.cmd([[
-  augroup packer_user_config
-    autocmd!
-    autocmd BufWritePost plugins.lua source <afile> | PackerCompile
-  augroup end
-]])
 vim.cmd([[ set termguicolors ]])
 
