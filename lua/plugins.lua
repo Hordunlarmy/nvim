@@ -1,20 +1,26 @@
--- Only required if you have packer configured as `opt`
-vim.cmd [[packadd packer.nvim]]
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable", -- latest stable release
+    lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
 
-return require("packer").startup(
-    function(use)
-        -- Packer can manage itself
-        use "wbthomason/packer.nvim"
-
-        use {
+require("lazy").setup({
+        {
             "nvim-telescope/telescope.nvim",
             tag = "0.1.1"
-        }
+        },
 
         -- required for telescope
-        use("nvim-lua/plenary.nvim")
+        "nvim-lua/plenary.nvim",
 
-        use({
+        {
             'projekt0n/github-nvim-theme',
             config = function()
                 require('github-theme').setup({
@@ -23,25 +29,28 @@ return require("packer").startup(
 
                 vim.cmd('colorscheme github_dark')
             end
-        })
+        },
 
-        use("nvim-treesitter/nvim-treesitter")
+        "nvim-treesitter/nvim-treesitter",
 
-        use("windwp/nvim-ts-autotag")
+        "windwp/nvim-ts-autotag",
 
-        use("mbbill/undotree")
+        "mbbill/undotree",
+
+        --Devicons
+        'kyazdani42/nvim-web-devicons',
 
         -- LSP Zero
-        use {
+        {
             "VonHeikemen/lsp-zero.nvim",
             branch = "v2.x",
-            requires = {
+            dependencies = {
                 -- LSP Support
                 {"neovim/nvim-lspconfig"}, -- Required
                 {
                     -- Optional
                     "williamboman/mason.nvim",
-                    run = function()
+                    build = function()
                         pcall(vim.cmd, "MasonUpdate")
                     end
                 },
@@ -51,89 +60,84 @@ return require("packer").startup(
                 {"hrsh7th/cmp-nvim-lsp"}, -- Required
                 {"L3MON4D3/LuaSnip"} -- Required
             }
-        }
+        },
         -- NULL-LSP
-       -- use {
+       -- {
          --   "jose-elias-alvarez/null-ls.nvim",
-           -- requires = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
-        --}
+           -- dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
+        --},
 
         -- Nvim-lint
-        use 'mfussenegger/nvim-lint'
+        'mfussenegger/nvim-lint',
 
         -- Nvim tree
-        use {
+        {
             "nvim-tree/nvim-tree.lua",
-            requires = {
-                "nvim-tree/nvim-web-devicons" -- optional
+            dependencies = {
+                "kyazdani42/nvim-web-devicons" -- optional
             }
-        }
+        },
 
-        use("zbirenbaum/copilot.lua")
+        "zbirenbaum/copilot.lua",
 
-        use("theprimeagen/Vim-be-good")
 
         -- markdown preview in the browser
-        use(
         {
             "iamcco/markdown-preview.nvim",
-            run = function()
+            build = function()
                 vim.fn["mkdp#util#install"]()
             end
-        }
-        )
+        },
         -- transparency support in neovim (for adding background image, etc.)
-        use("xiyaowong/transparent.nvim")
+        "xiyaowong/transparent.nvim",
 
         -- Recent project explorer
-        use("ahmedkhalf/project.nvim")
+        "ahmedkhalf/project.nvim",
 
         -- show inline git blame
-        use("f-person/git-blame.nvim")
+        "f-person/git-blame.nvim",
 
         -- toggle comments in code
-        use("numToStr/Comment.nvim")
+        "numToStr/Comment.nvim",
 
         -- auto detect indentation
-        use("nmac427/guess-indent.nvim")
+        "nmac427/guess-indent.nvim",
 
         -- git support in vim
-        use("tpope/vim-fugitive")
+        "tpope/vim-fugitive",
 
         -- custom status line
-        -- use {"nvim-lualine/lualine.nvim"}
+        "nvim-lualine/lualine.nvim",
 
         -- line for showing open buffers in tabline
-        use {"akinsho/bufferline.nvim", tag = "*"}
+        {'akinsho/bufferline.nvim', version = "*", dependencies = 'kyazdani42/nvim-web-devicons'},
 
         -- add highlight matching color to color codes (hex, rgb, etc.)
-        use {"RRethy/vim-hexokinase", run = "make hexokinase"}
+        {"RRethy/vim-hexokinase", build = "make hexokinase"},
 
-        --Devicons
-        use 'kyazdani42/nvim-web-devicons'
 
         -- staline status bar
-        use 'tamton-aquib/staline.nvim'
+        'tamton-aquib/staline.nvim',
 
         -- Indentation Line
-        use {
+        {
             'lukas-reineke/indent-blankline.nvim',
             tag = 'v2.0.0'
-        }
+        },
 
         -- Install Sniprun
-        use { 'michaelb/sniprun', run = 'sh ./install.sh'}
+        { 'michaelb/sniprun', build = 'sh ./install.sh'},
 
         -- Vim notify
-        use 'rcarriga/nvim-notify'
+        'rcarriga/nvim-notify',
 
         -- Autopairs
-        use {
+        {
             "windwp/nvim-autopairs",
             config = function() require("nvim-autopairs").setup {} end
-        }
+        },
         -- Hover
-        use {
+        {
             "lewis6991/hover.nvim",
             config = function()
                 require("hover").setup {
@@ -159,27 +163,26 @@ return require("packer").startup(
                 vim.keymap.set("n", "K", require("hover").hover, {desc = "hover.nvim"})
                 vim.keymap.set("n", "gK", require("hover").hover_select, {desc = "hover.nvim (select)"})
             end
-        }
+        },
         -- refactoring code-action
-        use {
+        {
             "ThePrimeagen/refactoring.nvim",
-            requires = {
+            dependencies = {
                 {"nvim-lua/plenary.nvim"},
                 {"nvim-treesitter/nvim-treesitter"}
             }
-        }
+        },
         -- Rainmboe delimeter for parenthesis color
-        use {"hiphish/rainbow-delimiters.nvim"}
+        {"hiphish/rainbow-delimiters.nvim"},
 
         -- Run code from nvim
-        use 'CRAG666/code_runner.nvim'
+        'CRAG666/code_runner.nvim',
 
         -- ALE linter
-        --use {'dense-analysis/ale'}
+        --{'dense-analysis/ale'},
 
         -- util for closing buffers easily
-        use {"kazhala/close-buffers.nvim"}
+        {"kazhala/close-buffers.nvim"},
 
-        use {"mhartington/formatter.nvim"}
-    end
-    )
+        {"mhartington/formatter.nvim"},
+    })
