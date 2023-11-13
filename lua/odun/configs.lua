@@ -49,7 +49,8 @@ vim.opt.termguicolors = true
 vim.g.nvim_tree_width = 20
 
 -- nvim-tree transparent BG
--- vim.cmd("autocmd Colorscheme * highlight NvimTreeNormal guibg=none guifg=#9da5b3")
+--vim.cmd("autocmd Colorscheme * highlight NvimTreeNormal guibg=none guifg=#9da5b3")
+vim.cmd[[hi NvimTreeNormal guibg=NONE ctermbg=NONE]]
 
 -- Set `fg` to the color you want your window separators to have
 vim.cmd([[highlight WinSeparator guifg=#8B8B8B guibg=NONE]])
