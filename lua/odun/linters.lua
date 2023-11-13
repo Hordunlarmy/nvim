@@ -46,7 +46,8 @@ require('refactoring').setup()
 require('lint').linters_by_ft = {
   markdown = {'vale', "markdownlint"},
   python = {'flake8'},
-  vint = {'vint'}
+  javascript = {'eslint'}, 
+  vint = {'vint'},
 
 }
 
@@ -64,5 +65,17 @@ require("formatter").setup({
         }
       end,
     },
+    javascript = {
+        function()
+          return {
+            exe = "semistandard",
+            args = {"--fix"},
+            stdin = false,
+            cwd = vim.fn.expand('%:p:h'),
+          }
+        end,
+      },
+    -- other file types and configurations
+    -- ...
   },
 })
