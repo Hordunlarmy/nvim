@@ -8,6 +8,34 @@ vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
 
+-- Define autocmd for Python files
+vim.cmd([[
+  autocmd FileType python
+        \ setlocal tabstop=4 |
+        \ setlocal softtabstop=4 |
+        \ setlocal shiftwidth=4 |
+        \ setlocal expandtab
+]])
+
+-- Define autocmd for JavaScript files
+vim.cmd([[
+  autocmd FileType javascript
+        \ setlocal tabstop=2 |
+        \ setlocal softtabstop=2 |
+        \ setlocal shiftwidth=2 |
+        \ setlocal expandtab
+]])
+
+-- Define autocmd for JavaScript files
+vim.cmd([[
+  autocmd FileType lua
+        \ setlocal tabstop=2 |
+        \ setlocal softtabstop=2 |
+        \ setlocal shiftwidth=2 |
+        \ setlocal expandtab
+]])
+
+
 vim.opt.smartindent = true
 
 vim.opt.swapfile = false

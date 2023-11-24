@@ -44,11 +44,22 @@ require('refactoring').setup()
 --------------------Nvim-lint------------------------------
 ----------------------------------------------------------
 require('lint').linters_by_ft = {
-  markdown = {'vale', "markdownlint"},
-  python = {'flake8'},
-  javascript = {'eslint'}, 
-  vint = {'vint'},
+  markdown = {"markdownlint"},
+  python = {'pycodestyle'},
+  javascript = {'semistandard'},
+}
 
+
+-- semistandard config
+require('lint').linters.semistandard = {
+  cmd = 'semistandard',
+  stdin = false,
+  append_fname = false,
+  args = {vim.fn.expand('%:p')},
+  stream = 'stderr',
+  ignore_exitcode = true,  -- Ignore the exit status of semistandard
+  env = nil,
+  parser = require('lint.parser').from_errorformat('semistandard')
 }
 
 ---------------Formatter----------------------------
@@ -69,9 +80,9 @@ require("formatter").setup({
         function()
           return {
             exe = "semistandard",
-            args = {"--fix"},
-            stdin = false,
-            cwd = vim.fn.expand('%:p:h'),
+            args = {"-", "--fix"},
+            stdin = true,
+            --cwd = vim.fn.expand('%:p:h'),
           }
         end,
       },
