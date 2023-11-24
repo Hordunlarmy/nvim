@@ -45,7 +45,7 @@ vim.keymap.set('n', 'wq', ':wq<CR>', { silent = true })
 vim.keymap.set('n', 'ww', ':w<CR>', { silent = true })
 
 -- Nvim-lint trigger
-vim.api.nvim_set_keymap('n', '<Esc>', [[:Format<CR>:lua vim.defer_fn(function() require("lint").try_lint() end, 1000)<CR>]], { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<Esc>', [[:Format<CR>:lua vim.defer_fn(function() require("lint").try_lint() end, 500)<CR>]], { noremap = true, silent = true })
 
 -- Hover trigger
         vim.keymap.set("n", "K", require("hover").hover, {desc = "hover.nvim"})
@@ -59,3 +59,4 @@ vim.keymap.set('n', '<leader>rp', ':RunProject<CR>', { noremap = true, silent = 
 vim.keymap.set('n', '<leader>rc', ':RunClose<CR>', { noremap = true, silent = false })
 vim.keymap.set('n', '<leader>crf', ':CRFiletype<CR>', { noremap = true, silent = false })
 vim.keymap.set('n', '<leader>crp', ':CRProjects<CR>', { noremap = true, silent = false })
+vim.keymap.set('n', '<leader>c', ':!chmod u+rwx %<CR>', { noremap = true, silent = false })
