@@ -86,6 +86,14 @@ require("formatter").setup({
           }
         end,
       },
+    html, htmldjango = {
+        function()
+            return {
+                exe = "htmlbeautifier",
+        stdin = true,
+        }
+    end,
+    },
     -- other file types and configurations
     -- ...
   },

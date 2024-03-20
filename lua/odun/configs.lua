@@ -101,6 +101,11 @@ nvim_lsp.lua_ls.setup{
     end,
 }
 
+-- Configure for html-languageserver
+nvim_lsp.html.setup{
+    filetypes = { "htmldjango" },
+    }
+
 -- Set the hover handler for LSP to use 'lsp.float' settings
 vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, lsp.float)
 -- Signature help configuration
