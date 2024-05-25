@@ -198,4 +198,7 @@ require("lazy").setup({
     {"kazhala/close-buffers.nvim"},
 
     {"mhartington/formatter.nvim"},
+    
+    -- Popup Terminal
+    {'numToStr/FTerm.nvim'},
 })
