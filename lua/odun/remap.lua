@@ -60,3 +60,23 @@ vim.keymap.set('n', '<leader>rc', ':RunClose<CR>', { noremap = true, silent = fa
 vim.keymap.set('n', '<leader>crf', ':CRFiletype<CR>', { noremap = true, silent = false })
 vim.keymap.set('n', '<leader>crp', ':CRProjects<CR>', { noremap = true, silent = false })
 vim.keymap.set('n', '<leader>c', ':!chmod u+rwx %<CR>', { noremap = true, silent = false })
+
+-- reload / source init.lua
+vim.api.nvim_set_keymap('n', '<C-s>', ':luafile ~/.config/nvim/lua/odun/init.lua | NvimTreeToggle<CR>', { noremap = true, silent = true })
+
+
+-- Key mapping to open the terminal popup
+vim.api.nvim_set_keymap('n', '<leader>t', ':lua OpenTerminalPopup()<CR>', { noremap = true, silent = true })
+
+-- Open Terminal
+vim.api.nvim_create_user_command('FTermOpen', require('FTerm').open, { bang = true })
+vim.api.nvim_set_keymap('n', '<leader>t', ':FTermOpen<CR>', { noremap = true, silent = true })
+
+-- Close terminal popup
+vim.api.nvim_create_user_command('FTermClose', require('FTerm').close, { bang = true })
+vim.api.nvim_set_keymap('t', '<Esc>', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
+
+-- Exit terminal
+vim.api.nvim_create_user_command('FTermExit', require('FTerm').exit, { bang = true })
+vim.api.nvim_set_keymap('t', '<leader>q', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
+
