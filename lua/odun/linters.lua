@@ -45,7 +45,7 @@ require('refactoring').setup()
 ----------------------------------------------------------
 require('lint').linters_by_ft = {
   markdown = {"markdownlint"},
-  python = {'pycodestyle'},
+  -- python = {'pycodestyle'},
   javascript = {'semistandard'},
 }
 

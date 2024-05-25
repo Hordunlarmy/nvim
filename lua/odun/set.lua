@@ -57,6 +57,8 @@ vim.opt.colorcolumn = "80"
 
 vim.o.completeopt = "menuone,noselect"
 
+-- Enable system clipboard
+vim.opt.clipboard = "unnamedplus"
 
 -- ignore case when searching
 vim.opt.ignorecase = true
