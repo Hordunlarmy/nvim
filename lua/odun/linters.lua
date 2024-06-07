@@ -75,24 +75,31 @@ require("formatter").setup({
           stdin = true,
         }
       end,
+      function()
+        return {
+          exe = "isort",
+          args = { "--stdout", "--filename", vim.api.nvim_buf_get_name(0), "-" },
+          stdin = true
+        }
+      end
     },
     javascript = {
-        function()
-          return {
-            exe = "semistandard",
-            args = {"-", "--fix"},
-            stdin = true,
-            --cwd = vim.fn.expand('%:p:h'),
-          }
-        end,
-      },
-    html, htmldjango = {
-        function()
-            return {
-                exe = "htmlbeautifier",
-        stdin = true,
+      function()
+        return {
+          exe = "semistandard",
+          args = {"-", "--fix"},
+          stdin = true,
+          --cwd = vim.fn.expand('%:p:h'),
         }
-    end,
+      end,
+    },
+    html, htmldjango = {
+      function()
+        return {
+          exe = "htmlbeautifier",
+          stdin = true,
+        }
+      end,
     },
     -- other file types and configurations
     -- ...
