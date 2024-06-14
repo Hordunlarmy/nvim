@@ -70,7 +70,7 @@ require("formatter").setup({
     python = {
       function()
         return {
-          exe = "autopep8",
+          exe = "flake8",
           args = {"-"},
           stdin = true,
         }
@@ -81,7 +81,14 @@ require("formatter").setup({
           args = { "--stdout", "--filename", vim.api.nvim_buf_get_name(0), "-" },
           stdin = true
         }
-      end
+      end,
+      function()
+        return {
+          exe = "black",
+          args = {"-"},
+          stdin = true,
+        }
+      end,
     },
     javascript = {
       function()
