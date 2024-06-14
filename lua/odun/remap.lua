@@ -80,3 +80,24 @@ vim.api.nvim_set_keymap('t', '<Esc>', '<C-\\><C-n>:FTermClose<CR>', { noremap = 
 vim.api.nvim_create_user_command('FTermExit', require('FTerm').exit, { bang = true })
 vim.api.nvim_set_keymap('t', '<leader>q', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
 
+-- Keybinding for Telescope live_grep to Ctrl+f
+-- Helper function to get visual selection
+function _G.get_visual_selection()
+    local s_start = vim.fn.getpos("'<")
+    local s_end = vim.fn.getpos("'>")
+    local n_lines = math.abs(s_end[2] - s_start[2]) + 1
+    local lines = vim.fn.getline(s_start[2], s_end[2])
+    lines[1] = string.sub(lines[1], s_start[3])
+    if n_lines == 1 then
+        lines[n_lines] = string.sub(lines[n_lines], 1, s_end[3] - s_start[3] + 1)
+    else
+        lines[n_lines] = string.sub(lines[n_lines], 1, s_end[3])
+    end
+    return table.concat(lines, '\n')
+end
+
+vim.api.nvim_set_keymap('v', '<C-f>', [[<cmd>lua require('telescope.builtin').live_grep({ default_text = get_visual_selection() })<CR>]], { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<C-f>', '<cmd>Telescope live_grep<cr>', { noremap = true, silent = true })
+
+-- Example key mapping for generating documentation with vim-doge
+vim.api.nvim_set_keymap('n', '<Leader>d', ':DogeGenerate<CR>', { noremap = true, silent = true })
