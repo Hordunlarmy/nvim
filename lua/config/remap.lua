@@ -44,13 +44,13 @@ vim.keymap.set('n', 'qq', ':q!<CR>', { silent = true })
 vim.keymap.set('n', 'wq', ':wq<CR>', { silent = true })
 vim.keymap.set('n', 'ww', ':w<CR>', { silent = true })
 
--- Nvim-lint trigger
-vim.api.nvim_set_keymap('n', '<Esc>', [[:Format<CR>:lua vim.defer_fn(function() require("lint").try_lint() end, 500)<CR>]], { noremap = true, silent = true })
-
--- Hover trigger
-        vim.keymap.set("n", "K", require("hover").hover, {desc = "hover.nvim"})
-        vim.keymap.set("n", "gK", require("hover").hover_select, {desc = "hover.nvim (select)"})
-
+-- Format on InsertLeave (when exiting insert mode)
+vim.api.nvim_create_autocmd("InsertLeave", {
+    pattern = "*",
+    callback = function()
+        vim.lsp.buf.format({ async = true })
+    end,
+})
 -- Code_Runner
 vim.keymap.set('n', '<leader>r', ':RunCode<CR>', { noremap = true, silent = false })
 vim.keymap.set('n', '<leader>rf', ':RunFile<CR>', { noremap = true, silent = false })
@@ -63,22 +63,6 @@ vim.keymap.set('n', '<leader>c', ':!chmod u+rwx %<CR>', { noremap = true, silent
 
 -- reload / source init.lua
 vim.api.nvim_set_keymap('n', '<C-s>', ':luafile ~/.config/nvim/lua/odun/init.lua | NvimTreeToggle<CR>', { noremap = true, silent = true })
-
-
--- Key mapping to open the terminal popup
-vim.api.nvim_set_keymap('n', '<leader>t', ':lua OpenTerminalPopup()<CR>', { noremap = true, silent = true })
-
--- Open Terminal
-vim.api.nvim_create_user_command('FTermOpen', require('FTerm').open, { bang = true })
-vim.api.nvim_set_keymap('n', '<leader>t', ':FTermOpen<CR>', { noremap = true, silent = true })
-
--- Close terminal popup
-vim.api.nvim_create_user_command('FTermClose', require('FTerm').close, { bang = true })
-vim.api.nvim_set_keymap('t', '<Esc>', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
-
--- Exit terminal
-vim.api.nvim_create_user_command('FTermExit', require('FTerm').exit, { bang = true })
-vim.api.nvim_set_keymap('t', '<leader>q', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
 
 -- Keybinding for Telescope live_grep to Ctrl+f
 -- Helper function to get visual selection
