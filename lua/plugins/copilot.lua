@@ -20,12 +20,12 @@ local config = function()
       auto_trigger = true,
       debounce = 75,
       keymap = {
-        accept = "<M-l>",
+        accept = "<M-m>",
         accept_word = false,
         accept_line = false,
-        next = "<M-]>",
-        prev = "<M-[>",
-        dismiss = "<C-]>",
+        next = "<M-Right>",
+        prev = "<M-Left>",
+        dismiss = "<M-q>",
       },
     },
     filetypes = {
@@ -57,4 +57,5 @@ return {
   dependencies = "zbirenbaum/copilot-cmp",
 
   config = config,
+  lazy = false,
 }

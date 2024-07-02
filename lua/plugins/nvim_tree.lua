@@ -5,7 +5,7 @@ local config = function()
     },
     view = {
       adaptive_size = true,
-      width = 30, -- Adjust this to your desired width
+      width = 30,
     },
     renderer = {
       highlight_opened_files = "none", -- Set to "icon", "name", or "all"
@@ -16,7 +16,7 @@ local config = function()
     },
     actions = {
       open_file = {
-        quit_on_open = false, -- Set this to false to keep NvimTree open
+        quit_on_open = false,
       },
     },
     git = {
@@ -56,7 +56,7 @@ local config = function()
   vim.opt.termguicolors = true
 
   -- nvim-tree transparent background
-  vim.cmd[[hi NvimTreeNormal guibg=NONE ctermbg=NONE]]
+  vim.cmd [[hi NvimTreeNormal guibg=NONE ctermbg=NONE]]
 
   -- Set window separator color
   vim.cmd([[highlight WinSeparator guifg=#8B8B8B guibg=NONE]])
@@ -67,4 +67,3 @@ return {
   lazy = false,
   config = config,
 }
-

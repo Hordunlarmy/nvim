@@ -7,13 +7,28 @@ return {
 		local dapui = require("dapui")
 
 		-- set custom icons
-		for name, sign in pairs(debugging_signs) do
-			sign = type(sign) == "table" and sign or { sign }
-			vim.fn.sign_define(
-				"Dap" .. name,
-				{ text = sign[1], texthl = sign[2] or "DiagnosticInfo", linehl = sign[3], numhl = sign[3] }
-			)
-		end
+		------- Configure diagnostics --------
+		vim.diagnostic.config({
+			virtual_text = false,
+			underline = true,
+			update_in_insert = false,
+			severity_sort = true,
+
+			float = {
+				border = 'rounded',
+				source = 'always',
+				header = '',
+				prefix = '',
+			},
+			signs = {
+				text = {
+					[vim.diagnostic.severity.ERROR] = debugging_signs.Error,
+					[vim.diagnostic.severity.WARN] = debugging_signs.Warn,
+					[vim.diagnostic.severity.INFO] = debugging_signs.Info,
+					[vim.diagnostic.severity.HINT] = debugging_signs.Hint,
+				}
+			},
+		})
 
 		-- setup dap
 		dapui.setup()
