@@ -4,22 +4,41 @@ local typescript_organise_imports = require("util.lsp").typescript_organise_impo
 
 local config = function()
 	vim.diagnostic.config({
-    virtual_text = false,  -- Disable virtual text
-    signs = true,          -- Enable signs in the sign column
-    update_in_insert = false, -- Don't update diagnostics in insert mode
-    underline = true,       -- Enable underlines
-    severity_sort = true,   -- Sort diagnostics by severity
-  })
+		virtual_text = false,   -- Disable virtual text
+		signs = true,           -- Enable signs in the sign column
+		update_in_insert = false, -- Don't update diagnostics in insert mode
+		underline = true,       -- Enable underlines
+		severity_sort = true,   -- Sort diagnostics by severity
+	})
 
 	require("neoconf").setup({})
 	local cmp_nvim_lsp = require("cmp_nvim_lsp")
 	local lspconfig = require("lspconfig")
 	local capabilities = cmp_nvim_lsp.default_capabilities()
 
-	for type, icon in pairs(diagnostic_signs) do
-		local hl = "DiagnosticSign" .. type
-		vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
-	end
+	------- Configure diagnostics --------
+	vim.diagnostic.config({
+		virtual_text = false,
+		underline = true,
+		update_in_insert = false,
+		severity_sort = true,
+
+		float = {
+			border = 'rounded',
+			source = 'always',
+			header = '',
+			prefix = '',
+		},
+		signs = {
+			text = {
+				[vim.diagnostic.severity.ERROR] = diagnostic_signs.Error,
+				[vim.diagnostic.severity.WARN] = diagnostic_signs.Warn,
+				[vim.diagnostic.severity.INFO] = diagnostic_signs.Info,
+				[vim.diagnostic.severity.HINT] = diagnostic_signs.Hint,
+			}
+		},
+	})
+
 
 	-- lua
 	lspconfig.lua_ls.setup({
@@ -50,34 +69,34 @@ local config = function()
 
 	-- python
 	lspconfig.jedi_language_server.setup({
-    capabilities = capabilities,
-    on_attach = on_attach,
-    settings = {
-        jedi = {
-            enable = true,
-            completion = {
-                enabled = true,
-                includeParams = true,
-            },
-            diagnostics = {
-                enabled = true,
-            },
-            hover = {
-                enabled = true,
-            },
-            references = {
-                enabled = true,
-            },
-            signatureHelp = {
-                enabled = true,
-            },
-            symbols = {
-                enabled = true,
-                excludeImports = false,
-            },
-        },
-    },
-})
+		capabilities = capabilities,
+		on_attach = on_attach,
+		settings = {
+			jedi = {
+				enable = true,
+				completion = {
+					enabled = true,
+					includeParams = true,
+				},
+				diagnostics = {
+					enabled = true,
+				},
+				hover = {
+					enabled = true,
+				},
+				references = {
+					enabled = true,
+				},
+				signatureHelp = {
+					enabled = true,
+				},
+				symbols = {
+					enabled = true,
+					excludeImports = false,
+				},
+			},
+		},
+	})
 
 	-- typescript
 	lspconfig.tsserver.setup({
@@ -143,16 +162,15 @@ local config = function()
 	})
 
 	local luacheck = require("efmls-configs.linters.luacheck")
-	local stylua = require("efmls-configs.formatters.stylua")
+	-- local stylua = require("efmls-configs.formatters.stylua")
 	local flake8 = require("efmls-configs.linters.flake8")
 	local black = require("efmls-configs.formatters.black")
 	local eslint = require("efmls-configs.linters.eslint")
 	local prettier_d = require("efmls-configs.formatters.prettier_d")
 	local fixjson = require("efmls-configs.formatters.fixjson")
 	local shellcheck = require("efmls-configs.linters.shellcheck")
-	local shfmt = require("efmls-configs.formatters.shfmt")
+	-- local shfmt = require("efmls-configs.formatters.shfmt")
 	local hadolint = require("efmls-configs.linters.hadolint")
-	local solhint = require("efmls-configs.linters.solhint")
 	local cpplint = require("efmls-configs.linters.cpplint")
 	local clangformat = require("efmls-configs.formatters.clang_format")
 
@@ -172,7 +190,6 @@ local config = function()
 			"vue",
 			"markdown",
 			"docker",
-			"solidity",
 			"html",
 			"css",
 			"c",
@@ -188,7 +205,7 @@ local config = function()
 		},
 		settings = {
 			languages = {
-				lua = { luacheck, stylua },
+				lua = { luacheck },
 				python = { flake8, black },
 				typescript = { eslint, prettier_d },
 				json = { eslint, fixjson },
@@ -208,8 +225,25 @@ local config = function()
 			},
 		},
 	})
+	-- Format on InsertLeave (when exiting insert mode)
+	-- Create a group for LSP formatting
+	local lsp_fmt_group = vim.api.nvim_create_augroup("LspFormattingGroup", {})
 
-	vim.api.nvim_set_keymap('n', '<leader>do', '<cmd>lua vim.diagnostic.open_float()<CR>', { noremap = true, silent = true })
+	-- Create an autocommand to format on InsertLeave
+	vim.api.nvim_create_autocmd("InsertLeave", {
+		group = lsp_fmt_group,
+		pattern = "*",                                    -- Apply to all buffers
+		callback = function()
+			local clients = vim.lsp.get_clients({ bufnr = 0 }) -- Get clients attached to the current buffer
+			if #clients > 0 then
+				vim.lsp.buf.format({ async = true })
+			end
+		end,
+	})
+
+
+	vim.api.nvim_set_keymap('n', '<leader>do', '<cmd>lua vim.diagnostic.open_float()<CR>',
+		{ noremap = true, silent = true })
 	vim.api.nvim_set_keymap('n', '<leader>d[', '<cmd>lua vim.diagnostic.goto_prev()<CR>', { noremap = true, silent = true })
 	vim.api.nvim_set_keymap('n', '<leader>d]', '<cmd>lua vim.diagnostic.goto_next()<CR>', { noremap = true, silent = true })
 end
