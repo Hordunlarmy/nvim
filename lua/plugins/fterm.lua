@@ -1,7 +1,7 @@
 -- Popup Terminal
 
 local config = function()
-  require'FTerm'.setup({
+  require 'FTerm'.setup({
     border = 'double',
 
     ---Filetype of the terminal buffer
@@ -34,9 +34,9 @@ local config = function()
     ---@type table<string,number>
     dimensions = {
       height = 0.8, -- Height of the terminal window
-      width = 0.8, -- Width of the terminal window
-      x = 0.5, -- X axis of the terminal window
-      y = 0.5, -- Y axis of the terminal window
+      width = 0.8,  -- Width of the terminal window
+      x = 0.5,      -- X axis of the terminal window
+      y = 0.5,      -- Y axis of the terminal window
     },
 
     ---Replace instead of extend the current environment with `env`.
@@ -63,29 +63,29 @@ local config = function()
     ---See `:h jobstart-options`
     ---@type fun()|nil
     on_stderr = nil,
-})
+  })
 
--- Key mapping to open the terminal popup
-vim.api.nvim_set_keymap('n', '<leader>t', ':lua OpenTerminalPopup()<CR>', { noremap = true, silent = true })
+  -- Key mapping to open the terminal popup
+  vim.api.nvim_set_keymap('n', '<leader>t', ':lua OpenTerminalPopup()<CR>', { noremap = true, silent = true })
 
--- Open Terminal
-vim.api.nvim_create_user_command('FTermOpen', require('FTerm').open, { bang = true })
-vim.api.nvim_set_keymap('n', '<leader>t', ':FTermOpen<CR>', { noremap = true, silent = true })
+  -- Open Terminal
+  vim.api.nvim_create_user_command('FTermOpen', require('FTerm').open, { bang = true })
+  vim.api.nvim_set_keymap('n', '<leader>t', ':FTermOpen<CR>', { noremap = true, silent = true })
 
--- Close terminal popup
-vim.api.nvim_create_user_command('FTermClose', require('FTerm').close, { bang = true })
-vim.api.nvim_set_keymap('t', '<Esc>', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
+  -- Close terminal popup
+  vim.api.nvim_create_user_command('FTermClose', require('FTerm').close, { bang = true })
+  vim.api.nvim_set_keymap('t', '<Esc>', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
 
--- Exit terminal
-vim.api.nvim_create_user_command('FTermExit', require('FTerm').exit, { bang = true })
-vim.api.nvim_set_keymap('t', '<leader>q', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
+  -- Exit terminal
+  vim.api.nvim_create_user_command('FTermExit', require('FTerm').exit, { bang = true })
+  vim.api.nvim_set_keymap('t', '<leader>q', '<C-\\><C-n>:FTermClose<CR>', { noremap = true, silent = true })
 
--- Define the GreenBorder highlight group
-vim.cmd([[highlight GreenBorder guifg=#00FF00]])
+  -- Define the GreenBorder highlight group
+  vim.cmd([[highlight GreenBorder guifg=#00FF00]])
 end
 
 return {
-    'numToStr/FTerm.nvim',
-    config = config,
+  'numToStr/FTerm.nvim',
+  config = config,
+  lazy = false,
 }
-

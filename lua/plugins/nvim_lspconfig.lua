@@ -71,31 +71,7 @@ local config = function()
 	lspconfig.jedi_language_server.setup({
 		capabilities = capabilities,
 		on_attach = on_attach,
-		settings = {
-			jedi = {
-				enable = true,
-				completion = {
-					enabled = true,
-					includeParams = true,
-				},
-				diagnostics = {
-					enabled = true,
-				},
-				hover = {
-					enabled = true,
-				},
-				references = {
-					enabled = true,
-				},
-				signatureHelp = {
-					enabled = true,
-				},
-				symbols = {
-					enabled = true,
-					excludeImports = false,
-				},
-			},
-		},
+		filetypes = { "python" },
 	})
 
 	-- typescript
