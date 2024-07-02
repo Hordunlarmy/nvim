@@ -2,16 +2,18 @@
 
 return {
   "xiyaowong/transparent.nvim",
+  lazy = false,
+  priority = 1000,
+
+
   config = function()
     require("transparent").setup({
-      enable = true,  -- Enable transparent windows
       extra_groups = { -- Additional groups to make transparent
         "Normal",
         "NormalFloat",
         "NormalNC",
       },
-      exclude = {},    -- Exclude specific groups from becoming transparent
+      exclude_groups = {}, -- Exclude specific groups from becoming transparent
     })
   end,
 }
-

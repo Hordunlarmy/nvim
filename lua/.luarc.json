@@ -1,7 +1,8 @@
 {
     "diagnostics.globals": [
         "vim",
-        "lfs"
+        "lfs",
+        "eslint_d"
     ],
     "workspace.library": [
         "${3rd}/lfs/library"

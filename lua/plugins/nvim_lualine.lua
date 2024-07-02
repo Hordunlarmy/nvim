@@ -1,23 +1,32 @@
 local config = function()
-	local palette = require("nightfox.palette").load("carbonfox")
-	local custom_nightfox = require("lualine.themes.nightfox")
-	custom_nightfox.normal.b.bg = palette.bg0
+	local lualine = require("lualine")
 
-	require("lualine").setup({
+	lualine.setup({
 		options = {
-			theme = custom_nightfox,
-			globalstatus = true,
-			component_separators = { left = "|", right = "|" },
-			section_separators = { left = "", right = "" },
+			theme = "onedark",
+			icons_enabled = true,
+			section_separators = { "", "" },
+			component_separators = { "", "" },
+			disabled_filetypes = {},
 		},
 		sections = {
 			lualine_a = { "mode" },
-			lualine_b = { "buffers" },
-			lualine_x = { "encoding", "fileformat", "filetype", "progress" },
-			lualine_y = { "" },
+			lualine_b = { "branch" },
+			lualine_c = { "filename" },
+			lualine_x = { "encoding", "fileformat", "filetype" },
+			lualine_y = { "progress" },
 			lualine_z = { "location" },
 		},
+		inactive_sections = {
+			lualine_a = {},
+			lualine_b = {},
+			lualine_c = { "filename" },
+			lualine_x = { "location" },
+			lualine_y = {},
+			lualine_z = {},
+		},
 		tabline = {},
+		extensions = { "nvim-tree" },
 	})
 end
 
