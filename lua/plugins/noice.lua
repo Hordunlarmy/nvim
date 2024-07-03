@@ -68,7 +68,8 @@ return {
 			opts = {
 				timeout = 3000,
 				render = "compact",
-				top_down = false,
+				max_width = 36,
+				-- top_down = false,
 				background_colour = "#000000",
 				fade_in_slide_out = true,
 				stages = "slide", -- Animation style for showing notifications
