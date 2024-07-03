@@ -8,7 +8,7 @@ local config = function()
       width = 30,
     },
     renderer = {
-      highlight_opened_files = "none", -- Set to "icon", "name", or "all"
+      highlight_opened_files = "name", -- Set to "icon", "name", or "all"
     },
     update_focused_file = {
       enable = true,
