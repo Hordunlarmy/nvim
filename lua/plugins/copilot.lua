@@ -1,6 +1,7 @@
 local config = function()
   require("copilot").setup({
     panel = {
+      close_on_escape = true,
       enabled = true,
       auto_refresh = false,
       keymap = {
@@ -8,7 +9,7 @@ local config = function()
         jump_next = "]]",
         accept = "<CR>",
         refresh = "gr",
-        open = "<M-CR>",
+        open = "<M-m>",
       },
       layout = {
         position = "bottom", -- | top | left | right
@@ -20,7 +21,7 @@ local config = function()
       auto_trigger = true,
       debounce = 75,
       keymap = {
-        accept = "<M-;>",
+        accept = "<M-CR>",
         accept_word = false,
         accept_line = false,
         next = "<M-Right>",

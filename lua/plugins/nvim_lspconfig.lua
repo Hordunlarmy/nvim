@@ -103,23 +103,23 @@ local config = function()
 		filetypes = { "sh", "aliasrc" },
 	})
 
-	-- typescriptreact, javascriptreact, css, sass, scss, less, svelte, vue
-	lspconfig.emmet_ls.setup({
-		capabilities = capabilities,
-		on_attach = on_attach,
-		filetypes = {
-			"typescriptreact",
-			"javascriptreact",
-			"javascript",
-			"css",
-			"sass",
-			"scss",
-			"less",
-			"svelte",
-			"vue",
-			"html",
-		},
-	})
+	-- -- typescriptreact, javascriptreact, css, sass, scss, less, svelte, vue
+	-- lspconfig.emmet_ls.setup({
+	-- 	capabilities = capabilities,
+	-- 	on_attach = on_attach,
+	-- 	filetypes = {
+	-- 		"typescriptreact",
+	-- 		"javascriptreact",
+	-- 		"javascript",
+	-- 		"css",
+	-- 		"sass",
+	-- 		"scss",
+	-- 		"less",
+	-- 		"svelte",
+	-- 		"vue",
+	-- 		"html",
+	-- 	},
+	-- })
 
 	-- docker
 	lspconfig.dockerls.setup({
@@ -141,29 +141,27 @@ local config = function()
 	-- local stylua = require("efmls-configs.formatters.stylua")
 	local flake8 = require("efmls-configs.linters.flake8")
 	local black = require("efmls-configs.formatters.black")
+	local autopep8 = require('efmls-configs.formatters.autopep8')
+	local isort = require('efmls-configs.formatters.isort')
 	local eslint = require("efmls-configs.linters.eslint")
 	local prettier_d = require("efmls-configs.formatters.prettier_d")
-	local fixjson = require("efmls-configs.formatters.fixjson")
-	local shellcheck = require("efmls-configs.linters.shellcheck")
+	-- local fixjson = require("efmls-configs.formatters.fixjson")
+	-- local shellcheck = require("efmls-configs.linters.shellcheck")
 	-- local shfmt = require("efmls-configs.formatters.shfmt")
 	local hadolint = require("efmls-configs.linters.hadolint")
-	local cpplint = require("efmls-configs.linters.cpplint")
-	local clangformat = require("efmls-configs.formatters.clang_format")
+	-- local cpplint = require("efmls-configs.linters.cpplint")
+	--local clangformat = require("efmls-configs.formatters.clang_format")
 
 	-- configure efm server
 	lspconfig.efm.setup({
 		filetypes = {
 			"lua",
 			"python",
-			"json",
-			"jsonc",
-			"sh",
+			-- "json",
+			-- "jsonc",
+			-- "sh",
 			"javascript",
-			"javascriptreact",
 			"typescript",
-			"typescriptreact",
-			"svelte",
-			"vue",
 			"markdown",
 			"docker",
 			"html",
@@ -182,22 +180,18 @@ local config = function()
 		settings = {
 			languages = {
 				lua = { luacheck },
-				python = { flake8, black },
+				python = { flake8, autopep8 },
 				typescript = { eslint, prettier_d },
-				json = { eslint, fixjson },
-				jsonc = { eslint, fixjson },
-				sh = { shellcheck, shfmt },
+				--	json = { eslint, fixjson },
+				--	jsonc = { eslint, fixjson },
+				--	sh = { shellcheck, shfmt },
 				javascript = { eslint, prettier_d },
-				javascriptreact = { eslint, prettier_d },
-				typescriptreact = { eslint, prettier_d },
-				svelte = { eslint, prettier_d },
-				vue = { eslint, prettier_d },
 				markdown = { prettier_d },
 				docker = { hadolint, prettier_d },
 				html = { prettier_d },
 				css = { prettier_d },
-				c = { clangformat, cpplint },
-				cpp = { clangformat, cpplint },
+				-- c = { clangformat, cpplint },
+				-- cpp = { clangformat, cpplint },
 			},
 		},
 	})

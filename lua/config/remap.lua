@@ -41,8 +41,8 @@ vim.keymap.set("n", "<C-Down>", ":resize -3<CR>", { silent = true, noremap = tru
 vim.keymap.set("i", "jj", "<ESC>")
 
 -- remap quit, save and save&&quit command
-vim.keymap.set('n', 'qq', ':bufdo q!<CR>', { silent = true })
-vim.keymap.set('n', 'wq', ':bufdo wq!<CR>', { silent = true })
+vim.keymap.set('n', 'qq', ':q!<CR>', { silent = true })
+vim.keymap.set('n', 'wq', ':wq!<CR>', { silent = true })
 vim.keymap.set('n', 'ww', ':w<CR>', { silent = true })
 
 
