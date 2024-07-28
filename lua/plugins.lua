@@ -132,10 +132,7 @@ require("lazy").setup({
     'tamton-aquib/staline.nvim',
 
     -- Indentation Line
-    {
-      'lukas-reineke/indent-blankline.nvim',
-      tag = 'v2.0.0'
-    },
+    { "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
 
     -- Install Sniprun
     -- { 'michaelb/sniprun', build = 'sh ./install.sh'},
