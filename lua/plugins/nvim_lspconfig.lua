@@ -1,16 +1,7 @@
 local on_attach = require("util.lsp").on_attach
 local diagnostic_signs = require("util.icons").diagnostic_signs
 local typescript_organise_imports = require("util.lsp").typescript_organise_imports
-
 local config = function()
-	vim.diagnostic.config({
-		virtual_text = false,   -- Disable virtual text
-		signs = true,           -- Enable signs in the sign column
-		update_in_insert = false, -- Don't update diagnostics in insert mode
-		underline = true,       -- Enable underlines
-		severity_sort = true,   -- Sort diagnostics by severity
-	})
-
 	require("neoconf").setup({})
 	local cmp_nvim_lsp = require("cmp_nvim_lsp")
 	local lspconfig = require("lspconfig")
@@ -38,7 +29,6 @@ local config = function()
 			}
 		},
 	})
-
 
 	-- lua
 	lspconfig.lua_ls.setup({
@@ -75,7 +65,7 @@ local config = function()
 	})
 
 	-- typescript
-	lspconfig.tsserver.setup({
+	lspconfig.ts_ls.setup({
 		on_attach = on_attach,
 		capabilities = capabilities,
 		filetypes = {
@@ -103,24 +93,6 @@ local config = function()
 		filetypes = { "sh", "aliasrc" },
 	})
 
-	-- -- typescriptreact, javascriptreact, css, sass, scss, less, svelte, vue
-	-- lspconfig.emmet_ls.setup({
-	-- 	capabilities = capabilities,
-	-- 	on_attach = on_attach,
-	-- 	filetypes = {
-	-- 		"typescriptreact",
-	-- 		"javascriptreact",
-	-- 		"javascript",
-	-- 		"css",
-	-- 		"sass",
-	-- 		"scss",
-	-- 		"less",
-	-- 		"svelte",
-	-- 		"vue",
-	-- 		"html",
-	-- 	},
-	-- })
-
 	-- docker
 	lspconfig.dockerls.setup({
 		capabilities = capabilities,
@@ -138,28 +110,15 @@ local config = function()
 	})
 
 	local luacheck = require("efmls-configs.linters.luacheck")
-	-- local stylua = require("efmls-configs.formatters.stylua")
 	local flake8 = require("efmls-configs.linters.flake8")
-	local black = require("efmls-configs.formatters.black")
-	local autopep8 = require('efmls-configs.formatters.autopep8')
-	local isort = require('efmls-configs.formatters.isort')
 	local eslint = require("efmls-configs.linters.eslint")
-	local prettier_d = require("efmls-configs.formatters.prettier_d")
-	-- local fixjson = require("efmls-configs.formatters.fixjson")
-	-- local shellcheck = require("efmls-configs.linters.shellcheck")
-	-- local shfmt = require("efmls-configs.formatters.shfmt")
 	local hadolint = require("efmls-configs.linters.hadolint")
-	-- local cpplint = require("efmls-configs.linters.cpplint")
-	--local clangformat = require("efmls-configs.formatters.clang_format")
 
 	-- configure efm server
 	lspconfig.efm.setup({
 		filetypes = {
 			"lua",
 			"python",
-			-- "json",
-			-- "jsonc",
-			-- "sh",
 			"javascript",
 			"typescript",
 			"markdown",
@@ -180,36 +139,32 @@ local config = function()
 		settings = {
 			languages = {
 				lua = { luacheck },
-				python = { flake8, autopep8 },
-				typescript = { eslint, prettier_d },
-				--	json = { eslint, fixjson },
-				--	jsonc = { eslint, fixjson },
-				--	sh = { shellcheck, shfmt },
-				javascript = { eslint, prettier_d },
-				markdown = { prettier_d },
-				docker = { hadolint, prettier_d },
-				html = { prettier_d },
-				css = { prettier_d },
-				-- c = { clangformat, cpplint },
-				-- cpp = { clangformat, cpplint },
+				python = { flake8 },
+				typescript = { eslint },
+				javascript = { eslint },
+				markdown = { eslint },
+				docker = { hadolint },
+				html = { eslint },
+				css = { eslint },
 			},
 		},
 	})
-	-- Format on InsertLeave (when exiting insert mode)
-	-- Create a group for LSP formatting
-	local lsp_fmt_group = vim.api.nvim_create_augroup("LspFormattingGroup", {})
 
-	-- Create an autocommand to format on InsertLeave
-	vim.api.nvim_create_autocmd("InsertLeave", {
-		group = lsp_fmt_group,
-		pattern = "*",                                    -- Apply to all buffers
-		callback = function()
-			local clients = vim.lsp.get_clients({ bufnr = 0 }) -- Get clients attached to the current buffer
-			if #clients > 0 then
-				vim.lsp.buf.format({ async = true })
-			end
-		end,
-	})
+	-- Format on InsertLeave (when exiting insert mode)
+	-- -- Create a group for LSP formatting
+	-- local lsp_fmt_group = vim.api.nvim_create_augroup("LspFormattingGroup", {})
+	--
+	-- -- Create an autocommand to format on InsertLeave
+	-- vim.api.nvim_create_autocmd("InsertLeave", {
+	-- 	group = lsp_fmt_group,
+	-- 	pattern = "*",                                    -- Apply to all buffers
+	-- 	callback = function()
+	-- 		local clients = vim.lsp.get_clients({ bufnr = 0 }) -- Get clients attached to the current buffer
+	-- 		if #clients > 0 then
+	-- 			vim.lsp.buf.format({ async = true })
+	-- 		end
+	-- 	end,
+	-- })
 
 
 	vim.api.nvim_set_keymap('n', '<leader>do', '<cmd>lua vim.diagnostic.open_float()<CR>',

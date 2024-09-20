@@ -1,0 +1,23 @@
+local config = function()
+  -- Setting up linters for various file types
+  require('lint').linters_by_ft = {
+    lua = { 'luacheck' },
+    python = { 'flake8' },
+    markdown = { 'markdownlint' },
+    dockerfile = { 'hadolint' },
+    json = { 'jsonlint' },
+    yaml = { 'yamllint' },
+    sh = { 'shellcheck' },
+  }
+end
+
+return {
+  {
+    'mfussenegger/nvim-lint',
+    config = config,
+    lazy = false,
+  },
+  -- nvim-lsp-ts-utils plugin for TypeScript utilities
+  'jose-elias-alvarez/nvim-lsp-ts-utils',
+}
+
