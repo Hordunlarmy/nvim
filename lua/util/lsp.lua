@@ -19,7 +19,7 @@ M.on_attach = function(client, bufnr)
 	mapkey("<A-d>", "Lspsaga term_toggle", "n", opts)                  -- terminal buffer
 
 
-	if client.name == "tsserver" then
+	if client.name == "ts_ls" then
 		mapkey("<leader>oi", "TypeScriptOrganizeImports", "n", opts) -- organise imports
 	end
 end
