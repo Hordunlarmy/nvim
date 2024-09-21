@@ -1,3 +1,5 @@
+-- Plugin for statusline
+
 local config = function()
 	local lualine = require("lualine")
 

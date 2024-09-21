@@ -1,3 +1,5 @@
+-- Plugin to show notifications
+
 return {
 	"folke/noice.nvim",
 	event = "VeryLazy",

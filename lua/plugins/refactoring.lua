@@ -1,3 +1,5 @@
+-- Refactoring plugin for Neovim
+
 local config = function()
   require('refactoring').setup({
     -- General refactoring options

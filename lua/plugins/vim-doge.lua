@@ -1,3 +1,5 @@
+-- Plugin to generate documentation comments for various programming languages
+
 return {
   'kkoomen/vim-doge',
   build = ':call doge#install()',  -- Runs the doge installation

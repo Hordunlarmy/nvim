@@ -1,26 +1,71 @@
 local config = function()
   require("nvim-tree").setup({
-    filters = {
-      dotfiles = false,
-    },
+    hijack_cursor = true,
+    focus_empty_on_setup = true,
+    sync_root_with_cwd = true,
     view = {
-      adaptive_size = true,
+      adaptive_size = false,
       width = 30,
     },
     renderer = {
-      highlight_opened_files = "name", -- Set to "icon", "name", or "all"
+      full_name = true,
+      group_empty = true,
+      special_files = {},
+      symlink_destination = false,
+      indent_markers = {
+        enable = true,
+      },
+      icons = {
+        git_placement = "signcolumn",
+        show = {
+          file = true,
+          folder = true,
+          folder_arrow = false,
+          git = true,
+        },
+      },
     },
     update_focused_file = {
       enable = true,
-      update_cwd = true,
+      update_root = true,
+      ignore_list = { "help" },
     },
-    actions = {
-      open_file = {
-        quit_on_open = false,
+    diagnostics = {
+      enable = true,
+      show_on_dirs = true,
+    },
+    filters = {
+      custom = {
+        "^.git$",
       },
     },
-    git = {
-      ignore = true,
+    actions = {
+      change_dir = {
+        enable = false,
+        restrict_above_cwd = true,
+      },
+      open_file = {
+        resize_window = true,
+        window_picker = {
+          chars = "aoeui",
+        },
+      },
+      remove_file = {
+        close_window = false,
+      },
+    },
+    log = {
+      enable = false,
+      truncate = true,
+      types = {
+        all = false,
+        config = false,
+        copy_paste = false,
+        diagnostics = false,
+        git = false,
+        profile = false,
+        watcher = false,
+      },
     },
   })
 
