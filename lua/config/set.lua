@@ -57,6 +57,9 @@ vim.opt.colorcolumn = "80"
 
 vim.o.completeopt = "menuone,noselect"
 
+-- Set timeoutlen for keymaps
+vim.opt.timeoutlen = 1000
+
 -- Enable system clipboard
 vim.opt.clipboard = "unnamedplus"
 
