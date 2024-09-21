@@ -1,3 +1,5 @@
+-- Plugin for debugging python code
+
 return {
 	"mfussenegger/nvim-dap-python",
 	ft = "python", -- filetype

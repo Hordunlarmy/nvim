@@ -1,3 +1,5 @@
+-- Plugin to automatically close brackets
+
 return {
   "windwp/nvim-autopairs",
 

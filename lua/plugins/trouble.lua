@@ -1,3 +1,5 @@
+-- Plugin to show diagnostics in a list
+
 local diagnostic_signs = require("util.icons").diagnostic_signs
 local maplazykey = require("util.keymapper").maplazykey
 
