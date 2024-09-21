@@ -18,7 +18,7 @@ local config = function()
     },
     suggestion = {
       enabled = true,
-      auto_trigger = true,
+      auto_trigger = false,
       debounce = 75,
       keymap = {
         accept = "<M-CR>",
@@ -26,7 +26,7 @@ local config = function()
         accept_line = false,
         next = "<M-Right>",
         prev = "<M-Left>",
-        dismiss = "<M-q>",
+        dismiss = "<M-m>",
       },
     },
     filetypes = {

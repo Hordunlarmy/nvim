@@ -87,5 +87,4 @@ end
 return {
   'numToStr/FTerm.nvim',
   config = config,
-  lazy = false,
 }
