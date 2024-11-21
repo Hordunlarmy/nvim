@@ -35,6 +35,17 @@ vim.cmd([[
         \ setlocal expandtab
 ]])
 
+-- Define autocmd for PHP files
+vim.cmd([[
+  autocmd FileType php
+        \ setlocal tabstop=4 |
+        \ setlocal softtabstop=4 |
+        \ setlocal shiftwidth=4 |
+        \ setlocal expandtab |
+        \ setlocal noexpandtab
+]])
+
+
 
 vim.opt.smartindent = true
 

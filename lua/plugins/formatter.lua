@@ -28,6 +28,15 @@ local config = function()
           }
         end,
       },
+      php = {
+        function()
+          return {
+            exe = "php-cs-fixer",
+            args = { "fix" },
+            stdin = false,
+          }
+        end,
+      },
       typescript = {
         function()
           return {

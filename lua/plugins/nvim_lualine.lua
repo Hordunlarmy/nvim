@@ -22,7 +22,32 @@ local config = function()
                 }
             },
             lualine_c = { "filename" },
-            lualine_x = { 'encoding', 'hostname' },
+            lualine_x = { {
+                'copilot',
+                symbols = {
+                    status = {
+                        icons = {
+                            enabled = " ",
+                            sleep = " ",   -- auto-trigger disabled
+                            disabled = " ",
+                            warning = " ",
+                            unknown = " "
+                        },
+                        hl = {
+                            enabled = "#50FA7B",
+                            sleep = "#AEB7D0",
+                            disabled = "#6272A4",
+                            warning = "#FFB86C",
+                            unknown = "#FF5555"
+                        }
+                    },
+                    spinners = require("copilot-lualine.spinners").dots,
+                    spinner_color = "#6272A4"
+                },
+                show_colors = false,
+                show_loading = true
+            },
+                'encoding', 'hostname' },
             lualine_y = { "searchcount" },
             lualine_z = { "location" },
         },
@@ -33,48 +58,6 @@ local config = function()
             lualine_x = { "location" },
             lualine_y = {},
             lualine_z = {},
-        },
-        winbar = {
-						lualine_a = {},
-            lualine_b = {
-                {
-                    'copilot',
-                    symbols = {
-                        status = {
-                            icons = {
-                                enabled = " ",
-                                sleep = " ",   -- auto-trigger disabled
-                                disabled = " ",
-                                warning = " ",
-                                unknown = " "
-                            },
-                            hl = {
-                                enabled = "#50FA7B",
-                                sleep = "#AEB7D0",
-                                disabled = "#6272A4",
-                                warning = "#FFB86C",
-                                unknown = "#FF5555"
-                            }
-                        },
-                        spinners = require("copilot-lualine.spinners").dots,
-                        spinner_color = "#6272A4"
-                    },
-                    show_colors = false,
-                    show_loading = true
-                }
-            },
-            lualine_c = {},
-            lualine_x = {},
-            lualine_y = {},
-            lualine_z = {}
-        },
-        inactive_winbar = {
-            lualine_a = {},
-            lualine_b = {},
-            lualine_c = {},
-            lualine_x = {},
-            lualine_y = {},
-            lualine_z = {}
         },
         tabline = {},
         extensions = { "nvim-tree" },

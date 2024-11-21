@@ -34,9 +34,8 @@ local config = function()
 	lspconfig.lua_ls.setup({
 		capabilities = capabilities,
 		on_attach = on_attach,
-		settings = { -- custom settings for lua
+		settings = {
 			Lua = {
-				-- make the language server recognize "vim" global
 				diagnostics = {
 					globals = { "vim" },
 				},
@@ -62,6 +61,13 @@ local config = function()
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "python" },
+	})
+
+	-- php
+	lspconfig.intelephense.setup({
+		capabilities = capabilities,
+		on_attach = on_attach,
+		filetypes = { "php" },
 	})
 
 	-- typescript
@@ -113,12 +119,14 @@ local config = function()
 	local flake8 = require("efmls-configs.linters.flake8")
 	local eslint = require("efmls-configs.linters.eslint")
 	local hadolint = require("efmls-configs.linters.hadolint")
+	local phpcs = require("efmls-configs.linters.phpcs")
 
 	-- configure efm server
 	lspconfig.efm.setup({
 		filetypes = {
 			"lua",
 			"python",
+			"php",
 			"javascript",
 			"typescript",
 			"markdown",
@@ -146,6 +154,19 @@ local config = function()
 				docker = { hadolint },
 				html = { eslint },
 				css = { eslint },
+				php = {
+					{
+						formatCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle",
+						formatStdin = true,
+					},
+					{
+						lintCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle -",
+						lintStdin = true,
+						lintFormats = {
+							"%f:%l %m",
+						},
+					},
+				},
 			},
 		},
 	})

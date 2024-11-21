@@ -18,15 +18,15 @@ local config = function()
     },
     suggestion = {
       enabled = true,
-      auto_trigger = false,
+      auto_trigger = true,
       debounce = 75,
       keymap = {
-        accept = "<M-CR>",
+        accept = "<M-Right>",
         accept_word = false,
         accept_line = false,
-        next = "<M-Right>",
-        prev = "<M-Left>",
-        dismiss = "<M-m>",
+        next = "<M-Down",
+        prev = "<M-Up>",
+        dismiss = "<M-Left>",
       },
     },
     filetypes = {
@@ -52,11 +52,10 @@ end
 
 
 return {
-  "zbirenbaum/copilot.lua",
+  "github/copilot.vim",
   cmd = "Copilot",
   event = "InsertEnter",
   dependencies = "zbirenbaum/copilot-cmp",
 
-  config = config,
   lazy = false,
 }
