@@ -38,6 +38,7 @@ local config = function()
       custom = {
         "^.git$",
       },
+      git_ignored = false,
     },
     actions = {
       change_dir = {
@@ -62,7 +63,7 @@ local config = function()
         config = false,
         copy_paste = false,
         diagnostics = false,
-        git = false,
+        git = true,
         profile = false,
         watcher = false,
       },
