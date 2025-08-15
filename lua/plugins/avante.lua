@@ -5,18 +5,20 @@ local config = function()
     ---@alias Mode "agentic" | "legacy"
     mode = "agentic",
     auto_suggestions_provider = "gemini",
-    gemini = {
-      endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
-      model = "gemini-2.0-flash",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 8192,
+    providers = {
+      gemini = {
+        endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
+        model = "gemini-2.0-flash",
+        timeout = 30000, -- Timeout in milliseconds
+        temperature = 0,
+        max_tokens = 8192,
+      -- provider = "aihubmix",
+      -- aihubmix = {
+      --   model = "claude-3-5-sonnet-20241022",
+      --
+      -- }
+      },
     },
-    -- provider = "aihubmix",
-    -- aihubmix = {
-    --   model = "claude-3-5-sonnet-20241022",
-    --
-    -- }
     dual_boost = {
       enabled = false,
       first_provider = "openai",

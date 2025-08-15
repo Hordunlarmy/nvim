@@ -16,6 +16,7 @@ local config = function()
 			"regex",
 			"rust",
 			"markdown",
+			"markdown_inline",
 			"json",
 			"javascript",
 			"typescript",
@@ -32,6 +33,7 @@ local config = function()
 			"vue",
 			"svelte",
 			"toml",
+			"jsonc",
 		},
 		auto_install = true,
 		highlight = {
