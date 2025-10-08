@@ -37,6 +37,22 @@ local config = function()
           }
         end,
       },
+      go = {
+        function()
+          return {
+            exe = "goimports",
+            args = {},
+            stdin = true,
+          }
+        end,
+        function()
+          return {
+            exe = "gofmt",
+            args = {},
+            stdin = true,
+          }
+        end,
+      },
       typescript = {
         function()
           return {
@@ -56,6 +72,7 @@ local config = function()
         }
       end,
     },
+
       markdown = {
         function()
           return {

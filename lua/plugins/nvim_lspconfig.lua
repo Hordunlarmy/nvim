@@ -115,11 +115,38 @@ local config = function()
 		},
 	})
 
+	-- gopls setup
+	lspconfig.gopls.setup({
+		capabilities = capabilities,
+		on_attach = on_attach,
+		cmd = { "gopls" },
+		filetypes = { "go", "gomod", "gowork", "gotmpl" },
+		root_dir = lspconfig.util.root_pattern("go.work", "go.mod", ".git"),
+		settings = {
+			gopls = {
+				usePlaceholders = true,
+				completeUnimported = true,
+				staticcheck = false,
+				analyses = {
+					unusedparams = true,
+					shadow = true,
+					nilness = true,
+					unusedwrite = true,
+					undeclaredname = true,
+				},
+				gofumpt = true,
+			},
+		},
+	})
+
+	-- efm setup
+
 	local luacheck = require("efmls-configs.linters.luacheck")
 	local flake8 = require("efmls-configs.linters.flake8")
 	local eslint = require("efmls-configs.linters.eslint")
 	local hadolint = require("efmls-configs.linters.hadolint")
 	local phpcs = require("efmls-configs.linters.phpcs")
+	local golangci_lint = require("efmls-configs.linters.golangci_lint")
 
 	-- configure efm server
 	lspconfig.efm.setup({
@@ -135,6 +162,7 @@ local config = function()
 			"css",
 			"c",
 			"cpp",
+			"go",
 		},
 		init_options = {
 			documentFormatting = true,
@@ -154,7 +182,9 @@ local config = function()
 				docker = { hadolint },
 				html = { eslint },
 				css = { eslint },
+				go = { golangci_lint },
 				php = {
+					{ phpcs },
 					{
 						formatCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle",
 						formatStdin = true,
