@@ -213,12 +213,18 @@ Leader key: `<Space>`
 - Shows ASCII art logo
 - Quick actions:
   - `f` - Find files
+  - `n` - New file
   - `r` - Recent files
+  - `g` - Find text (grep)
   - `c` - Config (opens init.lua and navigates nvim-tree to config folder)
   - `s` - Restore session
+  - `h` - Health check (`:checkhealth`)
   - `l` - Lazy plugin manager
   - `q` - Quit
 - Shows plugin count and Neovim version
+
+**Keybinding:** `<leader>;` (Space + semicolon) - Open Alpha dashboard in new tab! 🏠  
+*Opens in a new tab with nvim-tree on the left, so it doesn't close your current work*
 - Appears when opening Neovim without a file
 
 ### 📦 Better Quickfix (nvim-bqf)
@@ -313,8 +319,15 @@ Leader key: `<Space>`
 **What it does:** GitHub Copilot AI code suggestions
 - AI-powered code completion
 - Suggests entire functions
-- Learn from context
-- Accepts suggestions with Tab
+- Learns from context
+
+**Keybindings:**
+- **`Alt+l`** - Accept suggestion (moved from Tab so Tab works for indentation!)
+- **`Alt+]`** - Next suggestion
+- **`Alt+[`** - Previous suggestion
+- **`Ctrl+]`** - Dismiss suggestion
+- **`Alt+Enter`** - Open Copilot panel with more options
+- **`Tab`** - Works normally for indentation! ✅
 
 ### 🐛 DAP (Debug Adapter Protocol)
 **What it does:** Debugging support for multiple languages
@@ -344,12 +357,22 @@ Leader key: `<Space>`
 - Helps understand code flow
 - LSP-aware
 
-### 📝 Comment.nvim
+### 💬 Comment.nvim
 **What it does:** Smart code commenting
-- `gcc` - Toggle line comment
-- `gbc` - Toggle block comment
-- `gc` (visual mode) - Comment selection
-- Language-aware comments
+
+**Keybindings:**
+- **`gcc`** - Toggle comment on current line (most used!) ⚡
+- **`gc`** + motion - Comment with motion (e.g., `gc3j` = comment 3 lines down)
+- **`gc`** (visual mode) - Comment/uncomment selection
+- **`gbc`** - Toggle block comment
+- **`gb`** + motion - Block comment with motion
+
+**Examples:**
+- Single line: Put cursor on line, press **`gcc`**
+- Multiple lines: Select with `V`, press **`gc`**
+- Paragraph: Press **`gcap`** (comment around paragraph)
+
+Language-aware - automatically uses correct comment syntax (`//`, `#`, `--`, `/* */`, etc.)
 
 ### 🔗 Gitsigns
 **What it does:** Git integration showing changes in sign column
@@ -498,7 +521,21 @@ Leader key: `<Space>`
 - `gd` - Go to definition
 - `gr` - References
 - `K` - Hover docs
-- `[d` / `]d` - Next/Prev diagnostic
+
+### ⚡ Quick Diagnostic Navigation (Super Fast!)
+- `]d` / `[d` - Next/Previous **ANY** diagnostic ⚡
+- `]e` / `[e` - Next/Previous **ERROR** only 🔴
+- `]w` / `[w` - Next/Previous **WARNING** only 🟡
+- **`<leader>do`** - Open cursor diagnostic in bottom split (copyable!) 📋
+- **`<leader>dO`** - Open line diagnostic in bottom split (copyable!) 📋
+- `<leader>dc` - Close split window
+
+**Tip:** Diagnostic opens in a split window at the bottom. Click anywhere, use mouse to select, or use visual mode (`v`) + `y` to copy. Press `q` to close.
+
+### Delete Without Copying (No Yank Register Pollution!)
+- `<leader>dd` - Delete line without copying
+- `<leader>x` + motion - Delete with motion (e.g., `<leader>xw` = delete word)
+- Visual mode: `<leader>dd` - Delete selection without copying
 
 ### Trouble (Diagnostics)
 - `<leader>xx` - Toggle trouble
@@ -530,6 +567,18 @@ Leader key: `<Space>`
 - `:checkhealth` - Diagnose issues
 - `:Telescope` - Explore all Telescope features
 
+### ⚡ Reload Config & Environment
+- **`<F5>`** - Reload config + load API keys from vault 🚀🔑
+- **`<leader>R`** - Same as F5
+- **`<leader>so`** - Reload config only (skip env vars)
+- **`<leader>ar`** - Restart Neovim (for Avante AI to pick up new API keys)
+
+**Workflow:**
+1. Add API key to Vault → It auto-loads to `~/.vault_keys_cache`
+2. Press `<F5>` in Neovim → Loads keys into environment
+3. Press `<leader>ar` → Saves & restarts Neovim (for Avante)
+4. Avante now has the API key! ✅
+
 ### First Launch
 
 On your **first launch**, Neovim will:
@@ -540,10 +589,40 @@ On your **first launch**, Neovim will:
 
 Just open Neovim and wait! ☕
 
-## 🎨 Theme
+## 🎨 Theme & UI
 
 **Current:** GitHub Dark (clean, professional)
 **Transparent background** - Shows your terminal background through
+
+### **Line Numbers (Minimalist Style):**
+- **Current line:** Bright green number (bold) - highly visible! ✨
+- **Other lines:** Almost invisible (very dark gray)
+- **Effect:** You only notice the number where your cursor is!
+- Example: Cursor on line 42 → Big bright "42" in green
+- Move to line 5 → Number "5" lights up in green
+- Super clean focus on current position! 🎯
+
+### **Cursor Design (HIGH Visibility!):**
+- **All modes:** FULL WIDTH block cursor (█) - 100% width, blinking ✨
+- **Color:** Changes based on mode (white/green/purple/red/yellow/cyan)
+- **Blinking:** Fast and smooth (500ms cycle) - you'll NEVER lose it! 🎯
+- **Super visible:** Thick block that changes color with your mode!
+
+### **🌈 Mode-Based Colors (Complete Visual System!):**
+**EVERYTHING changes color based on your mode:**
+
+| Mode | Cursor | Line Number | Window Separator | Example |
+|------|--------|-------------|------------------|---------|
+| **Normal** | White block ⚪ | White | White | Calm, neutral |
+| **Insert** | Blue block 🔵 | Blue | Blue | You're typing! |
+| **Visual** | Purple block 🟣 | Purple | Purple | Selecting text |
+| **Replace** | Red block 🔴 | Red | Red | Replacing! |
+| **Command** | Yellow block 🟡 | Yellow | Yellow | Running command |
+| **Terminal** | Cyan block 🔵 | Cyan | Cyan | Terminal mode |
+
+**Complete visual feedback system!** The cursor, line number, and separators ALL change color together! ✨
+
+**No need to check statusline - just look at the colors!** 🎯
 
 ---
 
