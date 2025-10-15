@@ -49,7 +49,7 @@ local config = function()
       debounce = 75,
       trigger_on_accept = true,
       keymap = {
-        accept = "<Tab>",
+        accept = "<M-l>",  -- Changed from Tab to Alt+l (like accepting to the right)
         accept_word = false,
         accept_line = false,
         next = "<M-]>",
@@ -102,5 +102,8 @@ return {
   config = config,
   enabled = has_required_node, -- Only load if Node.js version is sufficient
   lazy = false,
+  -- NOTE: If :checkhealth shows "LSP authentication status: not authenticated"
+  -- this is a KNOWN FALSE POSITIVE. Copilot is authenticated via ~/.config/github-copilot/apps.json
+  -- To verify Copilot works: Start typing code and you should see gray suggestions!
 }
 

@@ -11,10 +11,19 @@ M.on_attach = function(client, bufnr)
 	mapkey("<leader>gS", "vsplit | Lspsaga goto_definition", "n", opts) -- go to definition
 	mapkey("<leader>ca", "Lspsaga code_action", "n", opts)             -- see available code actions
 	mapkey("<leader>rn", "Lspsaga rename", "n", opts)                  -- smart rename
-	mapkey("<leader>D", "Lspsaga show_line_diagnostics", "n", opts)    -- show  diagnostics for line
-	mapkey("<leader>d", "Lspsaga show_cursor_diagnostics", "n", opts)  -- show diagnostics for cursor
+	
+	-- Diagnostic keybindings are now global (set in nvim_lspconfig.lua)
+	
 	mapkey("<leader>pd", "Lspsaga diagnostic_jump_prev", "n", opts)    -- jump to prev diagnostic in buffer
 	mapkey("<leader>nd", "Lspsaga diagnostic_jump_next", "n", opts)    -- jump to next diagnostic in buffer
+	
+	-- Quick diagnostic navigation (standard Neovim convention)
+	vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { buffer = bufnr, silent = true, desc = "Next diagnostic" })
+	vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { buffer = bufnr, silent = true, desc = "Previous diagnostic" })
+	vim.keymap.set("n", "]e", function() vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.ERROR }) end, { buffer = bufnr, silent = true, desc = "Next error" })
+	vim.keymap.set("n", "[e", function() vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.ERROR }) end, { buffer = bufnr, silent = true, desc = "Previous error" })
+	vim.keymap.set("n", "]w", function() vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.WARN }) end, { buffer = bufnr, silent = true, desc = "Next warning" })
+	vim.keymap.set("n", "[w", function() vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.WARN }) end, { buffer = bufnr, silent = true, desc = "Previous warning" })
 	-- Use native LSP hover with floating window (we've configured the handler)
 	vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = bufnr, silent = true, desc = "Hover documentation" })
 	mapkey("<A-d>", "Lspsaga term_toggle", "n", opts)                  -- terminal buffer

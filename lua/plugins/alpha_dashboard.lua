@@ -30,6 +30,7 @@ return {
       dashboard.button("g", "  Find text", ":Telescope live_grep<CR>"),
       dashboard.button("c", "  Config", ":cd ~/.config/nvim | e $MYVIMRC | NvimTreeRefresh<CR>"),
       dashboard.button("s", "  Restore Session", ":lua if _G.restore_session_with_plugins then _G.restore_session_with_plugins() else require('persistence').load() end<CR>"),
+      dashboard.button("h", "  Health Check", ":checkhealth<CR>"),
       dashboard.button("l", "  Lazy", ":Lazy<CR>"),
       dashboard.button("q", "  Quit", ":qa<CR>"),
     }

@@ -180,32 +180,76 @@ local config = function()
 	})
 
 	-- efm setup (only if efm-langserver is installed)
+	-- Conditionally loads linters based on what's actually installed
 	if vim.fn.executable("efm-langserver") == 1 then
-		local ok_efmls, _ = pcall(require, "efmls-configs.linters.luacheck")
-		if ok_efmls then
-			pcall(function()
+		pcall(function()
+			-- Only load linters that have their executable installed
+			local languages = {}
+			local filetypes = {}
+			
+			-- Lua (luacheck)
+			if vim.fn.executable("luacheck") == 1 then
 				local luacheck = require("efmls-configs.linters.luacheck")
+				languages.lua = { luacheck }
+				table.insert(filetypes, "lua")
+			end
+			
+			-- Python (flake8)
+			if vim.fn.executable("flake8") == 1 then
 				local flake8 = require("efmls-configs.linters.flake8")
+				languages.python = { flake8 }
+				table.insert(filetypes, "python")
+			end
+			
+			-- JavaScript/TypeScript (eslint) - already installed
+			if vim.fn.executable("eslint") == 1 then
 				local eslint = require("efmls-configs.linters.eslint")
+				languages.javascript = { eslint }
+				languages.typescript = { eslint }
+				languages.markdown = { eslint }
+				languages.html = { eslint }
+				languages.css = { eslint }
+				vim.list_extend(filetypes, { "javascript", "typescript", "markdown", "html", "css" })
+			end
+			
+			-- Docker (hadolint)
+			if vim.fn.executable("hadolint") == 1 then
 				local hadolint = require("efmls-configs.linters.hadolint")
+				languages.docker = { hadolint }
+				table.insert(filetypes, "docker")
+			end
+			
+			-- PHP (phpcs)
+			if vim.fn.executable("phpcs") == 1 then
 				local phpcs = require("efmls-configs.linters.phpcs")
-				local golangci_lint = require("efmls-configs.linters.golangci_lint")
-
-				setup_server("efm", {
-					filetypes = {
-						"lua",
-						"python",
-						"php",
-						"javascript",
-						"typescript",
-						"markdown",
-						"docker",
-						"html",
-						"css",
-						"c",
-						"cpp",
-						"go",
+				languages.php = {
+					{ phpcs },
+					{
+						formatCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle",
+						formatStdin = true,
 					},
+					{
+						lintCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle -",
+						lintStdin = true,
+						lintFormats = {
+							"%f:%l %m",
+						},
+					},
+				}
+				table.insert(filetypes, "php")
+			end
+			
+			-- Go (golangci-lint)
+			if vim.fn.executable("golangci-lint") == 1 then
+				local golangci_lint = require("efmls-configs.linters.golangci_lint")
+				languages.go = { golangci_lint }
+				table.insert(filetypes, "go")
+			end
+			
+			-- Only setup efm if we have at least one linter
+			if #filetypes > 0 then
+				setup_server("efm", {
+					filetypes = filetypes,
 					init_options = {
 						documentFormatting = true,
 						documentRangeFormatting = true,
@@ -215,35 +259,11 @@ local config = function()
 						completion = true,
 					},
 					settings = {
-						languages = {
-							lua = { luacheck },
-							python = { flake8 },
-							typescript = { eslint },
-							javascript = { eslint },
-							markdown = { eslint },
-							docker = { hadolint },
-							html = { eslint },
-							css = { eslint },
-							go = { golangci_lint },
-							php = {
-								{ phpcs },
-								{
-									formatCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle",
-									formatStdin = true,
-								},
-								{
-									lintCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle -",
-									lintStdin = true,
-									lintFormats = {
-										"%f:%l %m",
-									},
-								},
-							},
-						},
+						languages = languages,
 					},
 				})
-			end)
-		end
+			end
+		end)
 	end
 
 	-- Format on InsertLeave (when exiting insert mode)
@@ -263,8 +283,7 @@ local config = function()
 	-- })
 
 
-	vim.api.nvim_set_keymap('n', '<leader>do', '<cmd>lua vim.diagnostic.open_float()<CR>',
-		{ noremap = true, silent = true })
+	-- Diagnostic navigation keybindings
 	vim.api.nvim_set_keymap('n', '<leader>d[', '<cmd>lua vim.diagnostic.goto_prev()<CR>', { noremap = true, silent = true })
 	vim.api.nvim_set_keymap('n', '<leader>d]', '<cmd>lua vim.diagnostic.goto_next()<CR>', { noremap = true, silent = true })
 end

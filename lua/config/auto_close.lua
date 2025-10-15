@@ -59,6 +59,7 @@ _G.check_and_close = function()
         and ft ~= "qf"
         and ft ~= "spectre_panel"
         and ft ~= "toggleterm"
+        and ft ~= "diagnostic_panel"  -- Don't close diagnostic splits!
         and bt ~= "nofile"
         and bt ~= "terminal"
         and bufname ~= ""

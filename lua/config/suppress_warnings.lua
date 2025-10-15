@@ -18,6 +18,7 @@ vim.notify = function(msg, level, opts)
        or msg:match("client%.request.*deprecated")
        or msg:match("Neoscroll.*deprecated")
        or msg:match("function signature scroll.*deprecated")
+       or msg:match("client.is_stopped is deprecated")
        or msg:match("vim%.deprecated") then
       return  -- Suppress these warnings silently
     end

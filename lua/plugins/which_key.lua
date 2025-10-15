@@ -104,9 +104,16 @@ return {
       
       -- Comment.nvim (gc prefix)
       { "gc", group = "comment" },
-      { "gcc", desc = "Toggle comment line" },
+      { "gcc", desc = "Toggle comment line ⚡" },
       { "gcb", desc = "Toggle comment block" },
       { "gc", desc = "Toggle comment", mode = "v" },
+      { "gcap", desc = "Comment paragraph" },
+      
+      -- Copilot
+      { "<M-l>", desc = "Accept Copilot suggestion", mode = "i" },
+      { "<M-]>", desc = "Next Copilot suggestion", mode = "i" },
+      { "<M-[>", desc = "Previous Copilot suggestion", mode = "i" },
+      { "<C-]>", desc = "Dismiss Copilot", mode = "i" },
       
       -- LSP (go-to mappings)
       { "gd", desc = "Go to definition" },
@@ -151,7 +158,11 @@ return {
       { "<leader>bp", desc = "Pick buffer" },
       
       -- UI toggles (alphabetically sorted)
+      { "<leader>uc", desc = "Force green cursor" },
+      { "<leader>uh", desc = "Notification history (scrollable)" },
+      { "<leader>uL", desc = "Rebuild LuaSnip (fix jsregexp)" },
       { "<leader>un", desc = "Dismiss notifications" },
+      { "<leader>uN", desc = "Fix line numbers" },
       { "<leader>tb", desc = "Toggle git blame" },
       { "<leader>tg", desc = "Toggle git deleted" },
       
@@ -168,6 +179,7 @@ return {
       { "<leader>ct", desc = "Generate type docs" },
       
       -- Trouble (diagnostics)
+      { "<leader>x", desc = "Delete (operator - no copy)" },
       { "<leader>xx", desc = "Toggle Trouble" },
       { "<leader>xw", desc = "Workspace diagnostics" },
       { "<leader>xd", desc = "Document diagnostics" },
@@ -209,8 +221,11 @@ return {
       { "<leader>rp", desc = "Run project" },
       
       -- Diagnostics group (under <leader>d)
-      { "<leader>d", desc = "Cursor diagnostics", group = "diagnostics" },
-      { "<leader>D", desc = "Line diagnostics" },
+      { "<leader>d", group = "diagnostics/delete" },
+      { "<leader>do", desc = "Cursor diagnostic (click to copy!)" },
+      { "<leader>dO", desc = "Line diagnostic (click to copy!)" },
+      { "<leader>dc", desc = "Close split window" },
+      { "<leader>dd", desc = "Delete line (no copy)", mode = { "n", "v" } },
       { "<leader>nd", desc = "Next diagnostic" },
       { "<leader>pd", desc = "Previous diagnostic" },
       
@@ -292,15 +307,22 @@ return {
       { "<leader>p", desc = "Paste without overwrite", mode = "x" },
       
       -- Source/reload (under <leader>s)
-      { "<leader>so", desc = "Reload config" },
+      { "<leader>so", desc = "Reload config only" },
+      { "<leader>sk", desc = "Check all API keys" },
+      { "<leader>R", desc = "Reload config + env vars" },
+      { "<F5>", desc = "Reload EVERYTHING (config + bashrc)" },
       
       -- Yank (under <leader>y)
       { "<leader>y", desc = "Yank to clipboard", mode = { "n", "v" } },
       { "<leader>Y", desc = "Yank line to clipboard" },
       
-      -- Diagnostics navigation
+      -- Diagnostics navigation (quick bindings!)
       { "[d", desc = "Previous diagnostic" },
       { "]d", desc = "Next diagnostic" },
+      { "[e", desc = "Previous error" },
+      { "]e", desc = "Next error" },
+      { "[w", desc = "Previous warning" },
+      { "]w", desc = "Next warning" },
       
       -- Avante AI (alphabetically sorted)
       { "<leader>a?", desc = "Select model" },
@@ -309,12 +331,13 @@ return {
       { "<leader>ae", desc = "Avante edit" },
       { "<leader>af", desc = "Avante focus" },
       { "<leader>ah", desc = "Select history" },
-      { "<leader>ar", desc = "Avante refresh" },
+      { "<leader>ar", desc = "Reload Avante" },
       { "<leader>at", desc = "Avante toggle" },
       
       -- Special keys
       { "<leader><leader>", desc = "Search ALL keymaps 🔍" },
       { "<leader>?", desc = "Show buffer keymaps" },
+      { "<leader>;", desc = "Alpha dashboard (new tab) 🏠" },
       { "<C-f>", desc = "Telescope live grep" },
       { "<C-\\>", desc = "Toggle terminal" },
       { "<A-d>", desc = "LSP terminal" },

@@ -1,8 +1,27 @@
-vim.opt.guicursor = ""
+-- Enable cursor with SUPER THICK design and blinking!
+vim.opt.guicursor = {
+  "n-v-c:block-Cursor-blinkwait500-blinkoff400-blinkon400",      -- Block cursor in normal (blinking)
+  "i-ci-ve:ver100-Cursor-blinkwait500-blinkoff400-blinkon400",   -- FULL WIDTH bar in insert (100% = block!, blinking)
+  "r-cr-o:hor50-Cursor-blinkwait500-blinkoff400-blinkon400",     -- Thick horizontal bar in replace (blinking)
+}
 
--- Enable line numbers and make them relative initially
-vim.wo.relativenumber = true
-vim.wo.number = true
+-- Cursor colors are now handled by mode_colors.lua
+-- They change dynamically based on mode (white/green/purple/red/yellow/cyan)
+
+-- MINIMALIST: Only show line number on CURRENT line (where cursor is)
+vim.wo.number = true            -- Enable line numbers
+vim.wo.relativenumber = false   -- Disable relative numbers
+vim.wo.cursorline = true        -- Highlight current line
+vim.wo.cursorlineopt = "number" -- Only highlight the line NUMBER, not the whole line
+
+-- Line number colors are now handled by mode_colors.lua
+-- They change dynamically based on mode (white/green/purple/red/yellow/cyan)
+
+-- Set numberwidth to give space for numbers
+vim.opt.numberwidth = 4
+
+-- Right margin is handled by right_padding.lua
+-- Adds 20 character padding on the right side of code buffers
 
 vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
@@ -45,6 +64,24 @@ vim.cmd([[
         \ setlocal softtabstop=4 |
         \ setlocal shiftwidth=4 |
         \ setlocal expandtab |
+        \ setlocal noexpandtab
+]])
+
+-- Define autocmd for Makefiles (MUST use TABS, not spaces!)
+vim.cmd([[
+  autocmd FileType make
+        \ setlocal tabstop=4 |
+        \ setlocal softtabstop=0 |
+        \ setlocal shiftwidth=4 |
+        \ setlocal noexpandtab
+]])
+
+-- Also catch any file named "Makefile", "makefile", "GNUmakefile"
+vim.cmd([[
+  autocmd BufRead,BufNewFile Makefile,makefile,*.mk,GNUmakefile
+        \ setlocal tabstop=4 |
+        \ setlocal softtabstop=0 |
+        \ setlocal shiftwidth=4 |
         \ setlocal noexpandtab
 ]])
 
@@ -124,7 +161,7 @@ vim.g.Hexokinase_highlighters = { 'foregroundfull' }
 ---------------------------------------------------------
 vim.cmd([[ let extension = expand('%:e') ]])
 vim.cmd([[ set encoding=utf8 ]])
-vim.cmd([[ set nu! ]])
+vim.cmd([[ set nu ]])  -- Enable numbers (removed ! which was toggling them OFF)
 vim.cmd([[ set mouse=a ]])
 vim.cmd([[ set wildmenu ]])
 vim.cmd([[ set confirm ]])
@@ -137,8 +174,7 @@ vim.cmd([[ set expandtab ]])
 vim.cmd([[ set shiftwidth=4 ]])
 vim.cmd([[ set softtabstop=4 ]])
 vim.cmd([[ set expandtab ]])
-vim.cmd([[ set guicursor= ]])
-vim.cmd([[ set cursorline ]])
+-- Cursor and cursorline are already configured above, don't override them
 vim.cmd([[ syntax on ]])
 vim.cmd([[ set termguicolors ]])
 

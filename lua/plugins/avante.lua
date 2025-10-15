@@ -12,6 +12,7 @@ local config = function()
         timeout = 30000, -- Timeout in milliseconds
         temperature = 0,
         max_tokens = 8192,
+        api_key_name = "GEMINI_API_KEY", -- Tell Avante to read from this env var
       -- provider = "aihubmix",
       -- aihubmix = {
       --   model = "claude-3-5-sonnet-20241022",
