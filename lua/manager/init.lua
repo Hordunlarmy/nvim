@@ -22,6 +22,11 @@ local opts = {
 	install = {
 		colorscheme = { "carbonfox" },
 	},
+	ui = {
+		size = { width = 0.85, height = 0.85 },
+		border = "rounded",  -- White border
+		backdrop = 100,  -- Opaque
+	},
 	rtp = {
 		disabled_plugins = {
 			"gzip",
@@ -45,3 +50,5 @@ local opts = {
 }
 
 require("lazy").setup(plugins, opts)
+
+-- Popup colors will be set automatically by borders.lua to match theme

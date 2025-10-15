@@ -1,9 +1,25 @@
 local on_attach = require("util.lsp").on_attach
 local diagnostic_signs = require("util.icons").diagnostic_signs
 local typescript_organise_imports = require("util.lsp").typescript_organise_imports
+
 local config = function()
 	require("neoconf").setup({})
 	local cmp_nvim_lsp = require("cmp_nvim_lsp")
+	
+	-- Suppress deprecation warning for now (lspconfig v3 not released yet)
+	local original_notify = vim.notify
+	vim.notify = function(msg, level, opts)
+		if msg and type(msg) == "string" and msg:match("lspconfig.*deprecated") then
+			return  -- Suppress lspconfig deprecation warnings
+		end
+		-- Use original notify or print if notify plugin not loaded
+		if original_notify then
+			original_notify(msg, level, opts)
+		else
+			print(msg)
+		end
+	end
+	
 	local lspconfig = require("lspconfig")
 	local capabilities = cmp_nvim_lsp.default_capabilities()
 
@@ -30,8 +46,32 @@ local config = function()
 		},
 	})
 
+	-- Helper function to safely setup LSP servers
+	local function setup_server(server_name, server_config)
+		-- Triple-safe approach: check multiple ways
+		local success = pcall(function()
+			-- First check if the server config exists in lspconfig
+			local configs = require("lspconfig.configs")
+			if not configs[server_name] then
+				-- Server not available, skip silently
+				return
+			end
+			
+			-- Server exists, try to set it up
+			local server = lspconfig[server_name]
+			if server and type(server.setup) == "function" then
+				server.setup(server_config)
+			end
+		end)
+		
+		-- If that failed, don't try anything else - just skip this server
+		if not success then
+			return
+		end
+	end
+
 	-- lua
-	lspconfig.lua_ls.setup({
+	setup_server("lua_ls", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		settings = {
@@ -50,28 +90,28 @@ local config = function()
 	})
 
 	-- json
-	lspconfig.jsonls.setup({
+	setup_server("jsonls", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "json", "jsonc" },
 	})
 
 	-- python
-	lspconfig.jedi_language_server.setup({
+	setup_server("jedi_language_server", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "python" },
 	})
 
 	-- php
-	lspconfig.intelephense.setup({
+	setup_server("intelephense", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "php" },
 	})
 
 	-- typescript
-	lspconfig.ts_ls.setup({
+	setup_server("ts_ls", {
 		on_attach = on_attach,
 		capabilities = capabilities,
 		filetypes = {
@@ -93,20 +133,20 @@ local config = function()
 	})
 
 	-- bash
-	lspconfig.bashls.setup({
+	setup_server("bashls", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "sh", "aliasrc" },
 	})
 
 	-- docker
-	lspconfig.dockerls.setup({
+	setup_server("dockerls", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 	})
 
 	-- C/C++
-	lspconfig.clangd.setup({
+	setup_server("clangd", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		cmd = {
@@ -115,8 +155,8 @@ local config = function()
 		},
 	})
 
-	-- gopls setup
-	lspconfig.gopls.setup({
+	-- gopls
+	setup_server("gopls", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		cmd = { "gopls" },
@@ -139,67 +179,72 @@ local config = function()
 		},
 	})
 
-	-- efm setup
+	-- efm setup (only if efm-langserver is installed)
+	if vim.fn.executable("efm-langserver") == 1 then
+		local ok_efmls, _ = pcall(require, "efmls-configs.linters.luacheck")
+		if ok_efmls then
+			pcall(function()
+				local luacheck = require("efmls-configs.linters.luacheck")
+				local flake8 = require("efmls-configs.linters.flake8")
+				local eslint = require("efmls-configs.linters.eslint")
+				local hadolint = require("efmls-configs.linters.hadolint")
+				local phpcs = require("efmls-configs.linters.phpcs")
+				local golangci_lint = require("efmls-configs.linters.golangci_lint")
 
-	local luacheck = require("efmls-configs.linters.luacheck")
-	local flake8 = require("efmls-configs.linters.flake8")
-	local eslint = require("efmls-configs.linters.eslint")
-	local hadolint = require("efmls-configs.linters.hadolint")
-	local phpcs = require("efmls-configs.linters.phpcs")
-	local golangci_lint = require("efmls-configs.linters.golangci_lint")
-
-	-- configure efm server
-	lspconfig.efm.setup({
-		filetypes = {
-			"lua",
-			"python",
-			"php",
-			"javascript",
-			"typescript",
-			"markdown",
-			"docker",
-			"html",
-			"css",
-			"c",
-			"cpp",
-			"go",
-		},
-		init_options = {
-			documentFormatting = true,
-			documentRangeFormatting = true,
-			hover = true,
-			documentSymbol = true,
-			codeAction = true,
-			completion = true,
-		},
-		settings = {
-			languages = {
-				lua = { luacheck },
-				python = { flake8 },
-				typescript = { eslint },
-				javascript = { eslint },
-				markdown = { eslint },
-				docker = { hadolint },
-				html = { eslint },
-				css = { eslint },
-				go = { golangci_lint },
-				php = {
-					{ phpcs },
-					{
-						formatCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle",
-						formatStdin = true,
+				setup_server("efm", {
+					filetypes = {
+						"lua",
+						"python",
+						"php",
+						"javascript",
+						"typescript",
+						"markdown",
+						"docker",
+						"html",
+						"css",
+						"c",
+						"cpp",
+						"go",
 					},
-					{
-						lintCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle -",
-						lintStdin = true,
-						lintFormats = {
-							"%f:%l %m",
+					init_options = {
+						documentFormatting = true,
+						documentRangeFormatting = true,
+						hover = true,
+						documentSymbol = true,
+						codeAction = true,
+						completion = true,
+					},
+					settings = {
+						languages = {
+							lua = { luacheck },
+							python = { flake8 },
+							typescript = { eslint },
+							javascript = { eslint },
+							markdown = { eslint },
+							docker = { hadolint },
+							html = { eslint },
+							css = { eslint },
+							go = { golangci_lint },
+							php = {
+								{ phpcs },
+								{
+									formatCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle",
+									formatStdin = true,
+								},
+								{
+									lintCommand = "phpcs --standard=~/code-rules/phpcs.xml --report=checkstyle -",
+									lintStdin = true,
+									lintFormats = {
+										"%f:%l %m",
+									},
+								},
+							},
 						},
 					},
-				},
-			},
-		},
-	})
+				})
+			end)
+		end
+	end
 
 	-- Format on InsertLeave (when exiting insert mode)
 	-- -- Create a group for LSP formatting

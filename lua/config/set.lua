@@ -1,7 +1,8 @@
 vim.opt.guicursor = ""
 
 -- Enable line numbers and make them relative initially
-vim.wo.relativenumber = false
+vim.wo.relativenumber = true
+vim.wo.number = true
 
 vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
@@ -57,7 +58,7 @@ vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
 vim.opt.undofile = true
 
 vim.opt.hlsearch = false
-vim.opt.incsearch = false
+vim.opt.incsearch = true
 
 vim.opt.termguicolors = true
 
@@ -66,7 +67,7 @@ vim.opt.signcolumn = "yes"
 vim.opt.isfname:append("@-@")
 
 vim.opt.updatetime = 50
-vim.opt.colorcolumn = "80"
+vim.opt.colorcolumn = ""  -- No column marker
 
 vim.o.completeopt = "menuone,noselect"
 
@@ -88,11 +89,18 @@ vim.cmd("set splitright splitbelow")
 -- make vertical split filler just empty (is '|' by default)
 --vim.cmd("set fillchars+=vert:\\ ")
 
--- set background to transparent
-vim.g.transparent_enabled = true
+-- set background to transparent for main editor, but NOT for floating windows
+vim.g.transparent_enabled = true  -- Keeps main background transparent
+-- Floating windows will be opaque via borders.lua config
 
 -- Enable mouse support
 vim.o.mouse = 'a'
+
+-- Suppress recording messages (recording @w, etc.) and mode messages
+vim.opt.shortmess:append("q")  -- Don't show recording messages
+
+-- Hide mode messages (-- INSERT --, -- VISUAL --, etc.) - shown in statusline instead
+vim.opt.showmode = false
 
 -- Enable syntax highlighting
 vim.cmd('syntax enable')

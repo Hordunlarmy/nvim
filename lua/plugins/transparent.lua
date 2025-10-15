@@ -10,10 +10,25 @@ return {
     require("transparent").setup({
       extra_groups = { -- Additional groups to make transparent
         "Normal",
-        "NormalFloat",
         "NormalNC",
+        -- Bufferline groups
+        "BufferLineFill",
+        "BufferLineBackground",
+        "BufferLineSeparator",
+        "BufferLineTab",
+        -- REMOVED NormalFloat - we want OPAQUE floating windows!
       },
-      exclude_groups = {}, -- Exclude specific groups from becoming transparent
+      exclude_groups = { -- EXCLUDE these from transparency
+        "NormalFloat",
+        "FloatBorder",
+        "FloatTitle",
+        "TelescopeBorder",
+        "TelescopePromptBorder",
+        "TelescopeResultsBorder",
+        "TelescopePreviewBorder",
+        "WhichKeyBorder",
+        "LspInfoBorder",
+      },
     })
   end,
 }

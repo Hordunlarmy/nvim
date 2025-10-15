@@ -23,6 +23,16 @@ local keys = {
 local config = function()
     local telescope = require("telescope")
     telescope.setup({
+        defaults = {
+            borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },  -- White borders
+            winblend = 0,  -- Opaque
+            layout_strategy = "center",
+            layout_config = {
+                width = 0.85,
+                height = 0.85,
+                preview_cutoff = 1,
+            },
+        },
         pickers = {
             live_grep = {
                 additional_args = function(_)

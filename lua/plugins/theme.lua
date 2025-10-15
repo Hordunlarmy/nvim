@@ -31,6 +31,9 @@ return {
 			})
 
 			vim.cmd('colorscheme github_dark')
-		end
+			
+			-- Popup colors will be set automatically by borders.lua
+			-- They will match the theme dynamically!
+		end,
 	},
 }

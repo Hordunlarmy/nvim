@@ -9,8 +9,10 @@ local config = function()
                 package_pending = "➜",
                 package_uninstalled = "✗"
             },
-				    border = 10,
-				    backdrop = 60,
+				    border = "rounded",  -- White border
+				    width = 0.85,        -- 85% of screen
+				    height = 0.85,       -- 85% of screen
+            backdrop = 100,      -- Opaque backdrop
 		        keymaps = {
 							---@since 1.0.0
 							-- Keymap to expand a package

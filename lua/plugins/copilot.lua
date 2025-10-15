@@ -1,4 +1,31 @@
+-- Check Node.js version
+local function check_node_version()
+  local handle = io.popen("node --version 2>/dev/null")
+  if not handle then return false end
+  
+  local result = handle:read("*a")
+  handle:close()
+  
+  if not result or result == "" then return false end
+  
+  -- Extract major version (e.g., "v20.19.5" -> 20)
+  local major = result:match("v(%d+)")
+  if not major then return false end
+  
+  return tonumber(major) >= 22
+end
+
+local has_required_node = check_node_version()
+
 local config = function()
+  if not has_required_node then
+    vim.notify(
+      "Copilot disabled: Node.js 22+ required. Current version: " .. (vim.fn.system("node --version"):gsub("\n", "")),
+      vim.log.levels.WARN
+    )
+    return
+  end
+
   require("copilot").setup({
     panel = {
       enabled = true,
@@ -40,7 +67,7 @@ local config = function()
       svn = false,
       cvs = false,
     },
-    copilot_node_command = "node", -- Node.js version must be > 20
+    copilot_node_command = "node", -- Node.js version must be >= 22
     workspace_folders = {},
     auth_provider_url = nil,
     copilot_model = "",
@@ -73,6 +100,7 @@ return {
   event = "InsertEnter",
   dependencies = "zbirenbaum/copilot-cmp",
   config = config,
+  enabled = has_required_node, -- Only load if Node.js version is sufficient
   lazy = false,
 }
 

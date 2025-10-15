@@ -37,11 +37,21 @@ vim.keymap.set("n", "<C-Right>", ":vertical resize -3<CR>", { silent = true, nor
 vim.keymap.set("n", "<C-Up>", ":resize +3<CR>", { silent = true, noremap = true })
 vim.keymap.set("n", "<C-Down>", ":resize -3<CR>", { silent = true, noremap = true })
 
--- Set esc to jj
-vim.keymap.set("i", "jj", "<ESC>")
+-- Set esc to jj (commented out - using normal ESC)
+-- vim.keymap.set("i", "jj", "<ESC>")
 
 -- remap quit, save and save&&quit command
-vim.keymap.set('n', 'qq', ':q!<CR>', { silent = true })
+-- Enhanced quit - auto-closes if only tree/aerial remain
+vim.keymap.set('n', 'qq', function()
+  -- Close current buffer
+  vim.cmd('q!')
+  -- Check if should auto-close
+  vim.defer_fn(function()
+    require('config.auto_close')
+    vim.cmd('CloseIfEmpty')
+  end, 100)
+end, { silent = true, desc = "Quit and auto-close if empty" })
+
 vim.keymap.set('n', 'wq', ':wq!<CR>', { silent = true })
 vim.keymap.set('n', 'ww', ':w<CR>', { silent = true })
 
@@ -54,7 +64,6 @@ vim.keymap.set('n', '<leader>rp', ':RunProject<CR>', { noremap = true, silent = 
 vim.keymap.set('n', '<leader>rc', ':RunClose<CR>', { noremap = true, silent = false })
 vim.keymap.set('n', '<leader>crf', ':CRFiletype<CR>', { noremap = true, silent = false })
 vim.keymap.set('n', '<leader>crp', ':CRProjects<CR>', { noremap = true, silent = false })
-vim.keymap.set('n', '<leader>c', ':!chmod u+rwx %<CR>', { noremap = true, silent = false })
 
 -- reload / source init.lua
 vim.api.nvim_set_keymap('n', '<leader>so',
@@ -82,9 +91,6 @@ vim.api.nvim_set_keymap('v', '<C-f>',
   [[<cmd>lua require('telescope.builtin').live_grep({ default_text = get_visual_selection() })<CR>]],
   { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<C-f>', '<cmd>Telescope live_grep<cr>', { noremap = true, silent = true })
-
--- Example key mapping for generating documentation with vim-doge
-vim.api.nvim_set_keymap('n', '<Leader>d', ':DogeGenerate<CR>', { noremap = true, silent = true })
 
 -- Indenting
 vim.keymap.set("v", "<", "<gv", { silent = true, noremap = true })
