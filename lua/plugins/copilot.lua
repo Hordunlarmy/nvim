@@ -2,25 +2,38 @@
 local function check_node_version()
   local handle = io.popen("node --version 2>/dev/null")
   if not handle then return false end
-  
+
   local result = handle:read("*a")
   handle:close()
-  
+
   if not result or result == "" then return false end
-  
+
   -- Extract major version (e.g., "v20.19.5" -> 20)
   local major = result:match("v(%d+)")
   if not major then return false end
-  
+
   return tonumber(major) >= 22
 end
 
 local has_required_node = check_node_version()
 
+-- Custom <Tab> logic for Copilot
+if has_required_node then
+  vim.keymap.set("i", "<Tab>", function()
+    local suggestion = require("copilot.suggestion")
+    if suggestion.is_visible() then
+      suggestion.accept()
+    else
+      return "<Tab>"
+    end
+  end, { expr = true, silent = true })
+end
+
 local config = function()
   if not has_required_node then
     vim.notify(
-      "Copilot disabled: Node.js 22+ required. Current version: " .. (vim.fn.system("node --version"):gsub("\n", "")),
+      "Copilot disabled: Node.js 22+ required. Current version: "
+      .. (vim.fn.system("node --version"):gsub("\n", "")),
       vim.log.levels.WARN
     )
     return
@@ -42,6 +55,7 @@ local config = function()
         ratio = 0.4,
       },
     },
+
     suggestion = {
       enabled = true,
       auto_trigger = true,
@@ -49,7 +63,7 @@ local config = function()
       debounce = 75,
       trigger_on_accept = true,
       keymap = {
-        accept = "<M-l>",  -- Changed from Tab to Alt+l (like accepting to the right)
+        accept = false,   -- DISABLED so our custom <Tab> handles acceptance
         accept_word = false,
         accept_line = false,
         next = "<M-]>",
@@ -57,6 +71,7 @@ local config = function()
         dismiss = "<C-]>",
       },
     },
+
     filetypes = {
       yaml = false,
       markdown = false,
@@ -67,23 +82,28 @@ local config = function()
       svn = false,
       cvs = false,
     },
+
     copilot_node_command = "node", -- Node.js version must be >= 22
     workspace_folders = {},
     auth_provider_url = nil,
     copilot_model = "",
     disable_limit_reached_message = false,
+
     root_dir = function()
       return vim.fs.dirname(vim.fs.find(".git", { upward = true })[1])
     end,
+
     should_attach = function(_, _)
       if not vim.bo.buflisted then return false end
       if vim.bo.buftype ~= "" then return false end
       return true
     end,
+
     server = {
       type = "nodejs",
       custom_server_filepath = nil,
     },
+
     server_opts_overrides = {},
   })
 
@@ -102,8 +122,5 @@ return {
   config = config,
   enabled = has_required_node, -- Only load if Node.js version is sufficient
   lazy = false,
-  -- NOTE: If :checkhealth shows "LSP authentication status: not authenticated"
-  -- this is a KNOWN FALSE POSITIVE. Copilot is authenticated via ~/.config/github-copilot/apps.json
-  -- To verify Copilot works: Start typing code and you should see gray suggestions!
 }
 
