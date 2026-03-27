@@ -6,8 +6,8 @@ return {
 	opts = {
 		routes = {
 			{
-				view = "notify",
 				filter = { event = "msg_showmode" },
+				opts = { skip = true },
 			},
 		},
 
@@ -43,6 +43,9 @@ return {
 		},
 
 		lsp = {
+			progress = {
+				enabled = false,
+			},
 			-- override markdown rendering so that **cmp** and other plugins use **Treesitter**
 			override = {
 				["vim.lsp.util.convert_input_to_markdown_lines"] = true,
@@ -65,32 +68,6 @@ return {
 		-- OPTIONAL:
 		--   `nvim-notify` is only needed, if you want to use the notification view.
 		--   If not available, we use `mini` as the fallback
-		{
-			"rcarriga/nvim-notify",
-			opts = {
-				timeout = 3000,
-				render = "minimal",
-				max_width = 36,
-				-- top_down = false,
-				background_colour = "#000000",
-				fade_in_slide_out = true,
-				stages = "slide", -- Animation style for showing notifications
-				icons = {
-					ERROR = "",
-					WARN = "",
-					INFO = "",
-					DEBUG = "",
-					TRACE = "✎",
-				},
-				modes = {
-					ERROR = "red",
-					WARN = "yellow",
-					INFO = "blue",
-					DEBUG = "cyan",
-					TRACE = "violet",
-				},
-
-			},
-		},
+		"rcarriga/nvim-notify",
 	},
 }

@@ -1,7 +1,7 @@
 -- Auto-close Neovim when only nvim-tree and aerial buffers remain
 
 -- Track if we just started (don't auto-close on initial startup)
-local startup_time = vim.loop.hrtime()
+local startup_time = vim.uv.hrtime()
 local startup_grace_period = 10000000000  -- 10 seconds in nanoseconds
 local user_has_opened_file = false  -- Track if user has ever opened a real file
 
@@ -17,9 +17,9 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
   end,
 })
 
-_G.check_and_close = function()
+local function check_and_close()
   -- Don't auto-close within first 10 seconds of startup
-  local elapsed = vim.loop.hrtime() - startup_time
+  local elapsed = vim.uv.hrtime() - startup_time
   if elapsed < startup_grace_period then
     return
   end
@@ -40,11 +40,9 @@ _G.check_and_close = function()
       local ft = vim.bo[buf].filetype
       local bt = vim.bo[buf].buftype
       local bufname = vim.api.nvim_buf_get_name(buf)
-      local line_count = vim.api.nvim_buf_line_count(buf)
-      local first_line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] or ""
       
       -- Check for empty unnamed buffer (like when you just type 'nvim')
-      if bufname == "" and ft == "" and line_count == 1 and first_line == "" then
+      if bufname == "" and ft == "" and bt == "" then
         has_empty_buffer = true
       end
       
@@ -84,18 +82,10 @@ _G.check_and_close = function()
 end
 
 -- Check on buffer delete/wipeout
-vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout", "WinClosed" }, {
   group = vim.api.nvim_create_augroup("AutoCloseNvim", { clear = true }),
   callback = function()
-    vim.defer_fn(_G.check_and_close, 200)
-  end,
-})
-
--- Also check when trying to quit
-vim.api.nvim_create_autocmd("QuitPre", {
-  group = vim.api.nvim_create_augroup("AutoCloseQuit", { clear = true }),
-  callback = function()
-    vim.defer_fn(_G.check_and_close, 100)
+    vim.defer_fn(check_and_close, 80)
   end,
 })
 
@@ -115,13 +105,11 @@ vim.api.nvim_create_user_command("CheckAutoClose", function()
   end
   
   print(vim.inspect(info))
-  _G.check_and_close()
+  check_and_close()
 end, { desc = "Debug auto-close logic" })
 
--- Also add a simpler manual close command
 vim.api.nvim_create_user_command("CloseIfEmpty", function()
-  _G.check_and_close()
+  check_and_close()
 end, { desc = "Close Neovim if only tree/aerial remain" })
 
 return {}
-

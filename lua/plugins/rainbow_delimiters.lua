@@ -2,7 +2,7 @@
 
 return {
   "hiphish/rainbow-delimiters.nvim",
-  lazy = false,
+  event = { "BufReadPost", "BufNewFile" },
   submodules = false,  -- Don't clone test submodules (fixes warning)
   config = function()
     -- Rainbow delimiters are automatically enabled
@@ -17,6 +17,7 @@ return {
       query = {
         [''] = 'rainbow-delimiters',
         lua = 'rainbow-blocks',
+        clojure = 'rainbow-blocks',
       },
       highlight = {
         'RainbowDelimiterRed',
@@ -30,4 +31,3 @@ return {
     }
   end,
 }
-

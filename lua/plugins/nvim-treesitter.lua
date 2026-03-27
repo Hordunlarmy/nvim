@@ -39,6 +39,7 @@ local config = function()
 			"c",
 			"cpp",
 			"java",
+			"clojure",
 		},
 		auto_install = true,
 		highlight = {

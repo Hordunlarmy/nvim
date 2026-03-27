@@ -24,8 +24,9 @@ M.on_attach = function(client, bufnr)
 	vim.keymap.set("n", "[e", function() vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.ERROR }) end, { buffer = bufnr, silent = true, desc = "Previous error" })
 	vim.keymap.set("n", "]w", function() vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.WARN }) end, { buffer = bufnr, silent = true, desc = "Next warning" })
 	vim.keymap.set("n", "[w", function() vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.WARN }) end, { buffer = bufnr, silent = true, desc = "Previous warning" })
-	-- Use native LSP hover with floating window (we've configured the handler)
-	vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = bufnr, silent = true, desc = "Hover documentation" })
+	vim.keymap.set("n", "K", function()
+		vim.lsp.buf.hover({ border = "rounded" })
+	end, { buffer = bufnr, silent = true, desc = "Hover documentation" })
 	mapkey("<A-d>", "Lspsaga term_toggle", "n", opts)                  -- terminal buffer
 
 

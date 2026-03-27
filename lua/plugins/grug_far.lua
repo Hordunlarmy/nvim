@@ -68,7 +68,7 @@ return {
           })
           
           -- Set opaque
-          vim.api.nvim_win_set_option(win, 'winblend', 0)
+          vim.wo[win].winblend = 0
         end, 10)
       end,
     })

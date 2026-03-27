@@ -3,22 +3,7 @@ local diagnostic_signs = require("util.icons").diagnostic_signs
 local typescript_organise_imports = require("util.lsp").typescript_organise_imports
 
 local config = function()
-	require("neoconf").setup({})
 	local cmp_nvim_lsp = require("cmp_nvim_lsp")
-	
-	-- Suppress deprecation warning for now (lspconfig v3 not released yet)
-	local original_notify = vim.notify
-	vim.notify = function(msg, level, opts)
-		if msg and type(msg) == "string" and msg:match("lspconfig.*deprecated") then
-			return  -- Suppress lspconfig deprecation warnings
-		end
-		-- Use original notify or print if notify plugin not loaded
-		if original_notify then
-			original_notify(msg, level, opts)
-		else
-			print(msg)
-		end
-	end
 	
 	local lspconfig = require("lspconfig")
 	local capabilities = cmp_nvim_lsp.default_capabilities()
@@ -46,27 +31,10 @@ local config = function()
 		},
 	})
 
-	-- Helper function to safely setup LSP servers
 	local function setup_server(server_name, server_config)
-		-- Triple-safe approach: check multiple ways
-		local success = pcall(function()
-			-- First check if the server config exists in lspconfig
-			local configs = require("lspconfig.configs")
-			if not configs[server_name] then
-				-- Server not available, skip silently
-				return
-			end
-			
-			-- Server exists, try to set it up
-			local server = lspconfig[server_name]
-			if server and type(server.setup) == "function" then
-				server.setup(server_config)
-			end
-		end)
-		
-		-- If that failed, don't try anything else - just skip this server
-		if not success then
-			return
+		local ok, server = pcall(function() return lspconfig[server_name] end)
+		if ok and server and type(server.setup) == "function" then
+			server.setup(server_config)
 		end
 	end
 
@@ -179,6 +147,36 @@ local config = function()
 		},
 	})
 
+	-- clojure
+	local clojure_root = lspconfig.util.root_pattern("project.clj", "deps.edn", "build.boot", "shadow-cljs.edn", "bb.edn")
+	local clojure_lsp_cache = vim.fn.stdpath("cache") .. "/clojure-lsp"
+	local clj_kondo_cache = vim.fn.stdpath("cache") .. "/clj-kondo"
+	vim.fn.mkdir(clojure_lsp_cache, "p")
+	vim.fn.mkdir(clj_kondo_cache, "p")
+	setup_server("clojure_lsp", {
+		capabilities = capabilities,
+		on_attach = on_attach,
+		filetypes = { "clojure", "edn" },
+		cmd_env = {
+			CLJ_KONDO_CACHE = clj_kondo_cache,
+		},
+		init_options = {
+			["cache-path"] = clojure_lsp_cache,
+			["lint-project-files-after-startup?"] = false,
+			["paths-ignore-regex"] = {
+				".*/target/.*",
+				".*/node_modules/.*",
+				".*/.shadow-cljs/.*",
+			},
+		},
+		root_dir = function(fname)
+			return clojure_root(fname)
+		end,
+		single_file_support = false,
+		-- Let clojure-lsp discover classpath from project tooling; custom init_options
+		-- here can cause classpath lookup failures in Lein profile-based projects.
+	})
+
 	-- efm setup (only if efm-langserver is installed)
 	-- Conditionally loads linters based on what's actually installed
 	if vim.fn.executable("efm-langserver") == 1 then
@@ -239,6 +237,19 @@ local config = function()
 				table.insert(filetypes, "php")
 			end
 			
+			-- Clojure (clj-kondo)
+			-- Avoid duplicate Clojure diagnostics when clojure-lsp is active.
+			if vim.fn.executable("clj-kondo") == 1 and vim.fn.executable("clojure-lsp") ~= 1 then
+				languages.clojure = {
+					{
+						lintCommand = "clj-kondo --lint -",
+						lintStdin = true,
+						lintFormats = { "%f:%l:%c: %trror: %m", "%f:%l:%c: %tarning: %m" },
+					},
+				}
+				table.insert(filetypes, "clojure")
+			end
+			
 			-- Go (golangci-lint)
 			if vim.fn.executable("golangci-lint") == 1 then
 				local golangci_lint = require("efmls-configs.linters.golangci_lint")
@@ -283,15 +294,14 @@ local config = function()
 	-- })
 
 
-	-- Diagnostic navigation keybindings
-	vim.api.nvim_set_keymap('n', '<leader>d[', '<cmd>lua vim.diagnostic.goto_prev()<CR>', { noremap = true, silent = true })
-	vim.api.nvim_set_keymap('n', '<leader>d]', '<cmd>lua vim.diagnostic.goto_next()<CR>', { noremap = true, silent = true })
+	vim.keymap.set('n', '<leader>d[', vim.diagnostic.goto_prev, { silent = true, desc = "Prev diagnostic" })
+	vim.keymap.set('n', '<leader>d]', vim.diagnostic.goto_next, { silent = true, desc = "Next diagnostic" })
 end
 
 return {
 	"neovim/nvim-lspconfig",
+	event = { "BufReadPre", "BufNewFile" },
 	config = config,
-	lazy = false,
 	dependencies = {
 		"windwp/nvim-autopairs",
 		"williamboman/mason.nvim",

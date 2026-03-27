@@ -2,6 +2,8 @@
 
 local config = function()
     local lualine = require("lualine")
+    local progress = require("util.progress")
+    progress.setup()
 
     lualine.setup({
         options = {
@@ -49,7 +51,14 @@ local config = function()
             },
                 'encoding', 'hostname' },
             lualine_y = { "searchcount" },
-            lualine_z = { "location" },
+            lualine_z = {
+                {
+                    progress.component,
+                    separator = { left = "", right = "" },
+                    color = { fg = "#111111", bg = "#98c379", gui = "bold" },
+                },
+                "location",
+            },
         },
         inactive_sections = {
             lualine_a = {},

@@ -2,6 +2,17 @@
 -- Creates a visual indicator of which mode you're in
 
 local M = {}
+local cached_normal_bg = "NONE"
+local mode_augroup = vim.api.nvim_create_augroup("ModeColors", { clear = true })
+
+local function refresh_bg()
+  local hl = vim.api.nvim_get_hl(0, { name = "Normal" })
+  if hl.bg then
+    cached_normal_bg = string.format("#%06x", hl.bg)
+  else
+    cached_normal_bg = "NONE"
+  end
+end
 
 -- Define colors for each mode
 local mode_colors = {
@@ -42,52 +53,36 @@ local mode_colors = {
   [""] = "#d19a66",
 }
 
--- Function to update separator, cursor, AND line number colors based on mode
 local function update_mode_colors()
   local mode = vim.api.nvim_get_mode().mode
-  local color = mode_colors[mode] or "#888888"  -- Default gray
-  
-  -- Get normal background for transparency
-  local normal_bg = vim.fn.synIDattr(vim.fn.synIDtrans(vim.fn.hlID("Normal")), "bg")
-  if not normal_bg or normal_bg == "" then
-    normal_bg = "NONE"
-  end
-  
-  -- Update window separator colors
-  vim.api.nvim_set_hl(0, 'WinSeparator', { fg = color, bg = normal_bg })
-  vim.api.nvim_set_hl(0, 'VertSplit', { fg = color, bg = normal_bg })
-  
-  -- Update cursor colors (matches mode!)
+  local color = mode_colors[mode] or "#888888"
+  local bg = cached_normal_bg
+
+  vim.api.nvim_set_hl(0, 'WinSeparator', { fg = color, bg = bg })
+  vim.api.nvim_set_hl(0, 'VertSplit', { fg = color, bg = bg })
   vim.api.nvim_set_hl(0, 'Cursor', { fg = '#000000', bg = color, bold = true })
   vim.api.nvim_set_hl(0, 'lCursor', { fg = '#000000', bg = color, bold = true })
   vim.api.nvim_set_hl(0, 'TermCursor', { fg = '#000000', bg = color, bold = true })
-  
-  -- Update current line number color (matches mode!)
-  vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = color, bg = normal_bg, bold = true })
-  
-  -- Keep other line numbers invisible
-  vim.api.nvim_set_hl(0, 'LineNr', { fg = '#1a1a1a', bg = normal_bg })
+  vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = color, bg = bg, bold = true })
+  vim.api.nvim_set_hl(0, 'LineNr', { fg = '#1a1a1a', bg = bg })
 end
 
--- Set up autocmd to update on mode change
 vim.api.nvim_create_autocmd("ModeChanged", {
+  group = mode_augroup,
   pattern = "*",
   callback = update_mode_colors,
 })
 
--- Also update on colorscheme change
 vim.api.nvim_create_autocmd("ColorScheme", {
+  group = mode_augroup,
   pattern = "*",
-  callback = update_mode_colors,
+  callback = function()
+    refresh_bg()
+    update_mode_colors()
+  end,
 })
 
--- Also update on entering/leaving insert mode
-vim.api.nvim_create_autocmd({ "InsertEnter", "InsertLeave" }, {
-  pattern = "*",
-  callback = update_mode_colors,
-})
-
--- Set initial color
+refresh_bg()
 vim.defer_fn(update_mode_colors, 100)
 
 return M

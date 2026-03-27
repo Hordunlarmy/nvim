@@ -18,6 +18,10 @@ return {
       "shellcheck",   -- Shell script linter
       "markdownlint", -- Markdown linter
       
+      -- Clojure
+      "clj-kondo",    -- Clojure linter
+      "cljfmt",       -- Clojure formatter
+
       -- DAP (Debuggers)
       "debugpy",      -- Python debugger
       

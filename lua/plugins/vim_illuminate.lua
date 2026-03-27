@@ -2,7 +2,7 @@
 
 return {
   "RRethy/vim-illuminate",
-  lazy = false,
+  event = { "BufReadPost", "BufNewFile" },
 
   config = function()
     require('illuminate').configure({

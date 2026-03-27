@@ -1,27 +1,82 @@
 -- aerial: Code outline window for symbols
 return {
   "stevearc/aerial.nvim",
-  lazy = false,  -- Load on startup
-  event = "VeryLazy",
+  lazy = false,
   dependencies = {
     "nvim-treesitter/nvim-treesitter",
     "nvim-tree/nvim-web-devicons",
   },
   config = function()
+    local excluded_filetypes = {
+      help = true,
+      qf = true,
+      NvimTree = true,
+      alpha = true,
+      dashboard = true,
+      starter = true,
+      lazy = true,
+      mason = true,
+      spectre_panel = true,
+      toggleterm = true,
+      aerial = true,
+      TelescopePrompt = true,
+      ["neo-tree"] = true,
+      Trouble = true,
+      trouble = true,
+      notify = true,
+      oil = true,
+      fugitive = true,
+      gitcommit = true,
+    }
+
+    local function should_auto_open(bufnr)
+      if vim.t.conjure_log_visible then
+        return false
+      end
+      if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+        return false
+      end
+
+      local buftype = vim.bo[bufnr].buftype
+      local filetype = vim.bo[bufnr].filetype
+      if buftype ~= "" or filetype == "" or excluded_filetypes[filetype] then
+        return false
+      end
+
+      local name = vim.api.nvim_buf_get_name(bufnr)
+      if name == "" or name:match("^term://") or name:match("conjure%-log%-") then
+        return false
+      end
+
+      local line_count = vim.api.nvim_buf_line_count(bufnr)
+      if line_count > 5000 then
+        return false
+      end
+
+      local file_size = vim.fn.getfsize(name)
+      if file_size > 0 and file_size > 512000 then
+        return false
+      end
+
+      return true
+    end
+
     require("aerial").setup({
-    backends = { "treesitter", "lsp", "markdown", "man" },
+    backends = { "lsp", "treesitter" },
+    -- Prefer LSP for Clojure to recognize custom macros like defapi
+    prefer_treesitter = false,
     layout = {
       max_width = { 40, 0.2 },
-      width = nil,
-      min_width = 30,
+      width = 32,
+      min_width = 28,
       win_opts = {},
       default_direction = "right",  -- Always open on right
       placement = "window",
-      resize_to_content = true,
+      resize_to_content = false,
       preserve_equality = false,
     },
-    attach_mode = "global",  -- Changed from "window" to "global"
-    close_automatic_events = {},
+    attach_mode = "window",
+    close_automatic_events = { "unsupported", "switch_buffer" },
     keymaps = {
       ["?"] = "actions.show_help",
       ["g?"] = "actions.show_help",
@@ -87,10 +142,10 @@ return {
     nerd_font = "auto",
     on_attach = function(bufnr) end,
     on_first_symbols = function(bufnr) end,
-    open_automatic = false,
+    open_automatic = should_auto_open,
     post_jump_cmd = "normal! zz",
     close_on_select = false,
-    update_events = "TextChanged,InsertLeave",
+    update_events = "BufWritePost,InsertLeave",
     show_guides = true,
     guides = {
       mid_item = "├─",
@@ -102,13 +157,29 @@ return {
       return "Aerial" .. symbol.kind .. (is_icon and "Icon" or "")
     end,
     lsp = {
-      diagnostics_trigger_update = true,
-      update_when_errors = true,
+      diagnostics_trigger_update = false,
+      update_when_errors = false,
       update_delay = 300,
     },
     treesitter = {
-      update_delay = 300,
+      update_delay = 600,
+      -- Custom queries for Clojure to recognize defapi and other custom macros
+      experimental_selection_range = true,
     },
+    -- Add custom symbol kinds for Clojure macros
+    post_parse_symbol = function(bufnr, item, ctx)
+      -- Treat defapi, defroutes, etc. as Functions in Aerial
+      if vim.bo[bufnr].filetype == "clojure" then
+        if item.kind == "Variable" and item.name then
+          -- Check if this is a custom macro definition
+          local line = vim.api.nvim_buf_get_lines(bufnr, item.lnum - 1, item.lnum, false)[1]
+          if line and line:match("%(def[a-z]+%s+" .. vim.pesc(item.name)) then
+            item.kind = "Function"
+          end
+        end
+      end
+      return true
+    end,
     markdown = {
       update_delay = 300,
     },
@@ -117,9 +188,20 @@ return {
     },
   })
     
-    -- Set keymaps manually
-    vim.keymap.set("n", "<leader>o", "<cmd>AerialToggle!<cr>", { desc = "Toggle Outline (Aerial)" })
-    vim.keymap.set("n", "<leader>O", "<cmd>AerialNavToggle<cr>", { desc = "Aerial Navigation Float" })
+    -- Set keymaps manually with graceful fallback when no backend is available.
+    vim.keymap.set("n", "<leader>o", function()
+      local ok = pcall(vim.cmd, "AerialToggle!")
+      if not ok then
+        vim.notify("Aerial outline unavailable for this buffer", vim.log.levels.WARN)
+      end
+    end, { desc = "Toggle Outline (Aerial)" })
+
+    vim.keymap.set("n", "<leader>O", function()
+      local ok = pcall(vim.cmd, "AerialNavToggle")
+      if not ok then
+        vim.notify("Aerial nav unavailable: no symbols/backend for this buffer", vim.log.levels.WARN)
+      end
+    end, { desc = "Aerial Navigation Float" })
     
     -- Set custom close keymaps that handle last window gracefully
     vim.api.nvim_create_autocmd("FileType", {
@@ -151,47 +233,28 @@ return {
         vim.keymap.set("n", "<ESC>", safe_aerial_close, { buffer = bufnr, desc = "Close Aerial (safe)" })
       end,
     })
-    
-    -- Auto-open Aerial when entering a buffer with code
-    vim.api.nvim_create_autocmd("BufWinEnter", {
-      group = vim.api.nvim_create_augroup("AerialAutoOpen", { clear = true }),
+
+    -- Fallback auto-open to keep behavior consistent even when backend attach timing varies.
+    vim.api.nvim_create_autocmd({ "BufEnter", "LspAttach" }, {
+      group = vim.api.nvim_create_augroup("AerialAutoOpenFallback", { clear = true }),
       callback = function(args)
         local bufnr = args.buf
-        local filetype = vim.bo[bufnr].filetype
-        local buftype = vim.bo[bufnr].buftype
-        local bufname = vim.api.nvim_buf_get_name(bufnr)
-        
-        -- Skip if no filename
-        if bufname == "" or bufname:match("^term://") then
+        if not should_auto_open(bufnr) then
           return
         end
-        
-        -- List of filetypes to exclude
-        local excluded_filetypes = {
-          "", "help", "qf", "NvimTree", "alpha", "dashboard", "starter",
-          "lazy", "mason", "spectre_panel", "toggleterm", "aerial",
-          "TelescopePrompt", "neo-tree", "Trouble", "trouble", "notify",
-          "oil", "fugitive", "gitcommit"
-        }
-        
-        -- Only open for normal buffers with code
-        if buftype == "" 
-          and filetype ~= "" 
-          and not vim.tbl_contains(excluded_filetypes, filetype) 
-          and vim.fn.filereadable(bufname) == 1 then
-          
-          -- Delay to ensure buffer is fully loaded
-          vim.defer_fn(function()
-            local ok, aerial = pcall(require, "aerial")
-            if ok and vim.api.nvim_buf_is_valid(bufnr) then
-              pcall(function()
-                aerial.open({ focus = false })
-              end)
-            end
-          end, 300)
+        local ok, aerial = pcall(require, "aerial")
+        if not ok then
+          return
+        end
+        local is_open = false
+        if type(aerial.is_open) == "function" then
+          local ok_open, open = pcall(aerial.is_open)
+          is_open = ok_open and open
+        end
+        if not is_open then
+          pcall(aerial.open, { focus = false })
         end
       end,
     })
   end,
 }
-

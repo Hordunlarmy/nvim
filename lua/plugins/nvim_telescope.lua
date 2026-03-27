@@ -1,7 +1,8 @@
 local keys = {
     { "<leader>/",  "<cmd>Telescope current_buffer_fuzzy_find<cr>", desc = "Buffer search" },
     { "<leader>fb", "<cmd>Telescope buffers<cr>",                   desc = "Buffers" },
-    { "<A-f>",      "<cmd>Telescope find_files<cr>",                desc = "Find All Files" },
+    { "<A-f>",      "<cmd>Telescope current_buffer_fuzzy_find<cr>", desc = "File search (current buffer)" },
+    { "<M-f>",      "<cmd>Telescope current_buffer_fuzzy_find<cr>", desc = "File search (current buffer)" },
     { "<C-p>",      "<cmd>Telescope git_files<cr>",                 desc = "Git files" },
     { "<leader>fj", "<cmd>Telescope help_tags<cr>",                 desc = "Help" },
     { "<leader>fh", "<cmd>Telescope command_history<cr>",           desc = "History" },
@@ -14,9 +15,9 @@ local keys = {
     { "<leader>fT", "<cmd>Telescope keymaps<cr>",                   desc = "Key Mappings" },
     { "<leader>ff", "<cmd>Telescope builtin<cr>",                   desc = "Show all builtin functions" },
     { "<leader>fq", "<cmd>Telescope quickfix<cr>",                  desc = "Quickfix" },
-    { "<leader>fa", "<cmd>Telescope lsp_code_actions<cr>",          desc = "Code Actions" },
-    { "<leader>fd", "<cmd>Telescope lsp_document_diagnostics<cr>",  desc = "Document Diagnostics" },
-    { "<leader>fw", "<cmd>Telescope lsp_workspace_diagnostics<cr>", desc = "Workspace Diagnostics" },
+    { "<leader>fa", "<cmd>Telescope diagnostics bufnr=0<cr>",       desc = "Buffer Diagnostics" },
+    { "<leader>fd", "<cmd>Telescope diagnostics bufnr=0<cr>",       desc = "Document Diagnostics" },
+    { "<leader>fw", "<cmd>Telescope diagnostics<cr>",               desc = "Workspace Diagnostics" },
     { "<leader>fD", "<cmd>Telescope lsp_definitions<cr>",           desc = "Word Definitions" },
 }
 
@@ -40,9 +41,8 @@ local config = function()
                 end,
             },
             find_files = {
-                additional_args = function(_)
-                    return { "--hidden", "--no-ignore-vcs" }
-                end,
+                hidden = true,
+                no_ignore = true,
             },
         },
         extensions = {

@@ -1,4 +1,6 @@
 local config = function()
+  local diagnostics_enabled = vim.g.diagnostics_global_enabled ~= false
+
   require("nvim-tree").setup({
     hijack_cursor = true,
     sync_root_with_cwd = true,
@@ -22,6 +24,7 @@ local config = function()
           folder = true,
           folder_arrow = false,
           git = true,
+          diagnostics = diagnostics_enabled,
         },
       },
     },
@@ -31,7 +34,7 @@ local config = function()
       ignore_list = { "help" },
     },
     diagnostics = {
-      enable = true,
+      enable = diagnostics_enabled,
       show_on_dirs = true,
     },
     filters = {
@@ -70,8 +73,13 @@ local config = function()
     },
   }) 
 
-  -- Move cursor to the other buffer
-  vim.cmd([[autocmd VimEnter * wincmd p]])
+  -- Move cursor to the main editing window once, without stacking on reload.
+  vim.api.nvim_create_autocmd("VimEnter", {
+    group = vim.api.nvim_create_augroup("NvimTreeFocusMain", { clear = true }),
+    callback = function()
+      pcall(vim.cmd, "wincmd p")
+    end,
+  })
 
   -- Set termguicolors to enable highlight groups
   vim.opt.termguicolors = true

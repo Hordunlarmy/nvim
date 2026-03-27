@@ -9,15 +9,6 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   pattern = '*',
 })
 
-vim.api.nvim_create_autocmd("BufWritePost", {
-  callback = function()
-    -- Get the current buffer's file name
-    local filename = vim.fn.expand('%:t')
-    -- Print the custom message
-    print("  " .. filename .. " saved successfully!")
-  end
-})
-
 -- Close editor if nvim-tree is the last buffer
 vim.api.nvim_create_autocmd("BufEnter", {
   group = vim.api.nvim_create_augroup("NvimTreeClose", {clear = true}),
@@ -36,20 +27,18 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end
 })
 
--- Open NvimTree on startup
+-- Open NvimTree on startup and focus main window
 vim.api.nvim_create_autocmd("VimEnter", {
+  group = vim.api.nvim_create_augroup("NvimTreeAutoOpen", { clear = true }),
   callback = function()
-    -- Delay to let plugins load
     vim.defer_fn(function()
       local ok, api = pcall(require, "nvim-tree.api")
       if ok then
         api.tree.open()
-        
-        -- Move cursor back to main buffer (not nvim-tree)
-        vim.defer_fn(function()
-          vim.cmd("wincmd l")  -- Move cursor to the right window (main buffer)
-        end, 50)
+        vim.cmd("wincmd l")
       end
-    end, 100)
-  end
+    end, 50)
+  end,
 })
+
+-- Clojure REPL auto-start is handled by Conjure's native auto_repl feature.

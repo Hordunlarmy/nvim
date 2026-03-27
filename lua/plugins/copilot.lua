@@ -1,39 +1,22 @@
--- Check Node.js version
-local function check_node_version()
-  local handle = io.popen("node --version 2>/dev/null")
-  if not handle then return false end
-
-  local result = handle:read("*a")
-  handle:close()
-
-  if not result or result == "" then return false end
-
-  -- Extract major version (e.g., "v20.19.5" -> 20)
-  local major = result:match("v(%d+)")
-  if not major then return false end
-
-  return tonumber(major) >= 22
-end
-
-local has_required_node = check_node_version()
-
--- Custom <Tab> logic for Copilot
-if has_required_node then
-  vim.keymap.set("i", "<Tab>", function()
-    local suggestion = require("copilot.suggestion")
-    if suggestion.is_visible() then
-      suggestion.accept()
-    else
-      return "<Tab>"
-    end
-  end, { expr = true, silent = true })
+local function get_node_major()
+  if vim.fn.executable("node") ~= 1 then
+    return nil, ""
+  end
+  local out = vim.fn.system({ "node", "--version" })
+  if vim.v.shell_error ~= 0 then
+    return nil, ""
+  end
+  local version = vim.trim(out or "")
+  local major = tonumber(version:match("^v?(%d+)"))
+  return major, version
 end
 
 local config = function()
-  if not has_required_node then
+  local node_major, node_version = get_node_major()
+  if not node_major or node_major < 22 then
     vim.notify(
       "Copilot disabled: Node.js 22+ required. Current version: "
-      .. (vim.fn.system("node --version"):gsub("\n", "")),
+      .. (node_version ~= "" and node_version or "not found"),
       vim.log.levels.WARN
     )
     return
@@ -90,7 +73,11 @@ local config = function()
     disable_limit_reached_message = false,
 
     root_dir = function()
-      return vim.fs.dirname(vim.fs.find(".git", { upward = true })[1])
+      local git_dir = vim.fs.find(".git", { upward = true })[1]
+      if git_dir then
+        return vim.fs.dirname(git_dir)
+      end
+      return (vim.uv and vim.uv.cwd and vim.uv.cwd()) or vim.fn.getcwd()
     end,
 
     should_attach = function(_, _)
@@ -112,6 +99,15 @@ local config = function()
       insert_text = require("copilot_cmp.format").remove_existing,
     },
   })
+
+  vim.keymap.set("i", "<Tab>", function()
+    local suggestion = require("copilot.suggestion")
+    if suggestion.is_visible() then
+      suggestion.accept()
+      return ""
+    end
+    return "<Tab>"
+  end, { expr = true, silent = true, desc = "Accept Copilot or insert Tab" })
 end
 
 return {
@@ -120,7 +116,7 @@ return {
   event = "InsertEnter",
   dependencies = "zbirenbaum/copilot-cmp",
   config = config,
-  enabled = has_required_node, -- Only load if Node.js version is sufficient
-  lazy = false,
+  enabled = function()
+    return vim.fn.executable("node") == 1
+  end,
 }
-

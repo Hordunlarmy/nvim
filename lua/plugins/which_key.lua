@@ -1,12 +1,30 @@
 -- which-key: displays a popup with possible key bindings
 return {
   "folke/which-key.nvim",
-  event = "VeryLazy",
+  lazy = false,
   keys = {
     {
       "<leader><leader>",
-      "<cmd>Telescope keymaps<cr>",
-      desc = "Search Keymaps",
+      function()
+        require("telescope.builtin").keymaps({
+          prompt_title = "Keymaps (search by key, desc, plugin)",
+          layout_strategy = "vertical",
+          layout_config = { width = 0.8, height = 0.85 },
+          show_plug = false,
+        })
+      end,
+      desc = "Search Keymaps (desc + tags)",
+    },
+    {
+      "<leader>fC",
+      function()
+        require("telescope.builtin").keymaps({
+          prompt_title = "Clojure Tooling Keymaps",
+          default_text = "conjure",
+          show_plug = false,
+        })
+      end,
+      desc = "Search Clojure keymaps (Conjure/Aerial)",
     },
     {
       "<leader>?",
@@ -18,14 +36,15 @@ return {
   },
   init = function()
     vim.o.timeout = true
-    vim.o.timeoutlen = 300
   end,
   config = function()
     local wk = require("which-key")
     
     wk.setup({
       preset = "modern",
-      delay = 300,
+      -- Small delay is more reliable than 0ms on busy startup.
+      delay = 80,
+      notify = false,
       plugins = {
         marks = true,
         registers = true,
@@ -54,14 +73,14 @@ return {
         spacing = 3,
         align = "left",
       },
-      sort = { "alphanum", "order", "local", "group" },  -- Sort alphabetically
+      sort = { "order" },
       filter = function(mapping)
         -- Filter function - return true to show mapping
         return true
       end,
-      -- Enable search/filter
       triggers = {
-        { "<auto>", mode = "nxso" },
+        { "<leader>", mode = { "n", "v" } },
+        { "<localleader>", mode = { "n", "v" } },
       },
       defer = function(ctx)
         return ctx.mode == "V" or ctx.mode == "<C-V>"
@@ -82,7 +101,7 @@ return {
       { "<leader>i", group = "inline/refactor" },
       { "<leader>m", group = "markdown" },
       { "<leader>n", group = "navigation" },
-      { "<leader>o", group = "outline/aerial" },
+      { "<leader>o", group = "aerial/outline" },
       { "<leader>p", group = "project/paste" },
       { "<leader>q", group = "session/quit" },
       { "<leader>r", group = "run/rename" },
@@ -224,6 +243,10 @@ return {
       { "<leader>d", group = "diagnostics/delete" },
       { "<leader>do", desc = "Cursor diagnostic (click to copy!)" },
       { "<leader>dO", desc = "Line diagnostic (click to copy!)" },
+      { "<leader>dt", desc = "Toggle diagnostics (buffer)" },
+      { "<leader>dT", desc = "Toggle diagnostics (global)" },
+      { "<leader>dk", desc = "Toggle diagnostics (Clojure)" },
+      { "<leader>dK", desc = "Reset Clojure caches" },
       { "<leader>dc", desc = "Close split window" },
       { "<leader>dd", desc = "Delete line (no copy)", mode = { "n", "v" } },
       { "<leader>nd", desc = "Next diagnostic" },
@@ -300,7 +323,7 @@ return {
       
       -- Outline/Aerial (under <leader>o)
       { "<leader>o", desc = "Toggle Outline (Aerial)" },
-      { "<leader>O", desc = "Aerial Navigation Float" },
+      { "<leader>O", desc = "Aerial: Navigation Float" },
       
       -- Project/Paste (under <leader>p)
       { "<leader>pv", desc = "Ex mode" },
@@ -333,12 +356,36 @@ return {
       { "<leader>ah", desc = "Select history" },
       { "<leader>ar", desc = "Reload Avante" },
       { "<leader>at", desc = "Avante toggle" },
+
+      -- Conjure (Clojure REPL) - uses <localleader> (backslash \)
+      -- Note: These are buffer-local, only active in .clj files
+      { "<localleader>", group = "conjure/compojure repl" },
+      { "<localleader>e", group = "conjure eval" },
+      { "<localleader>eb", desc = "Conjure/Compojure: eval buffer" },
+      { "<localleader>ee", desc = "Conjure/Compojure: eval form under cursor" },
+      { "<localleader>er", desc = "Conjure/Compojure: eval root form" },
+      { "<localleader>ew", desc = "Conjure/Compojure: eval word" },
+      { "<localleader>e!", desc = "Conjure/Compojure: eval replace form" },
+      { "<localleader>l", group = "conjure log" },
+      { "<localleader>ls", desc = "Conjure/Compojure: show log" },
+      { "<localleader>lq", desc = "Conjure/Compojure: close log" },
+      { "<localleader>lt", desc = "Conjure/Compojure: toggle log" },
+      { "<localleader>lr", desc = "Conjure/Compojure: reset log" },
+      { "<localleader>s", group = "conjure session" },
+      { "<localleader>sc", desc = "Conjure/Compojure: connect/select REPL" },
+      { "<localleader>cd", desc = "Conjure/Compojure: disconnect" },
+      { "<localleader>g", group = "conjure goto" },
+      { "<localleader>gd", desc = "Conjure/Compojure: go to definition" },
+      { "<localleader>v", group = "conjure view" },
+      { "<localleader>vs", desc = "Conjure/Compojure: view source" },
+      { "<localleader>vd", desc = "Conjure/Compojure: view doc" },
       
       -- Special keys
       { "<leader><leader>", desc = "Search ALL keymaps 🔍" },
       { "<leader>?", desc = "Show buffer keymaps" },
       { "<leader>;", desc = "Alpha dashboard (new tab) 🏠" },
       { "<C-f>", desc = "Telescope live grep" },
+      { "<A-f>", desc = "Telescope search (current file)" },
       { "<C-\\>", desc = "Toggle terminal" },
       { "<A-d>", desc = "LSP terminal" },
       
@@ -368,4 +415,3 @@ return {
     })
   end,
 }
-

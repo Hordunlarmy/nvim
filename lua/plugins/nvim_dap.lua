@@ -1,6 +1,7 @@
 -- Plugin for debugging
 
 local debugging_signs = require("util.icons").debugging_signs
+local diagnostic_signs = require("util.icons").diagnostic_signs
 
 return {
 	"mfussenegger/nvim-dap",
@@ -24,10 +25,10 @@ return {
 			},
 			signs = {
 				text = {
-					[vim.diagnostic.severity.ERROR] = debugging_signs.Error,
-					[vim.diagnostic.severity.WARN] = debugging_signs.Warn,
-					[vim.diagnostic.severity.INFO] = debugging_signs.Info,
-					[vim.diagnostic.severity.HINT] = debugging_signs.Hint,
+					[vim.diagnostic.severity.ERROR] = diagnostic_signs.Error,
+					[vim.diagnostic.severity.WARN] = diagnostic_signs.Warn,
+					[vim.diagnostic.severity.INFO] = diagnostic_signs.Info,
+					[vim.diagnostic.severity.HINT] = diagnostic_signs.Hint,
 				}
 			},
 		})

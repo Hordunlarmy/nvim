@@ -11,6 +11,9 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Set localleader for Conjure and other filetype-specific plugins
+vim.g.maplocalleader = "\\"
+
 require("config")
 
 local plugins = "plugins"
@@ -42,6 +45,26 @@ local opts = {
 	},
 	change_detection = {
 		notify = false,
+	},
+	performance = {
+		cache = {
+			enabled = true,
+		},
+		reset_packpath = true,
+		rtp = {
+			reset = true,
+			disabled_plugins = {
+				"gzip",
+				"matchit",
+				"matchparen",
+				"netrw",
+				"netrwPlugin",
+				"tarPlugin",
+				"tohtml",
+				"tutor",
+				"zipPlugin",
+			},
+		},
 	},
 	rocks = {
     enabled = false,

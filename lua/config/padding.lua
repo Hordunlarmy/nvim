@@ -1,32 +1,27 @@
--- Add padding to all floating windows automatically
+-- Add padding to floating windows and special panels
 
--- Auto-command to add padding when floating windows open
+local padding_group = vim.api.nvim_create_augroup("FloatPadding", { clear = true })
+
 vim.api.nvim_create_autocmd("FileType", {
+  group = padding_group,
   pattern = "*",
   callback = function()
     local win = vim.api.nvim_get_current_win()
-    local config = vim.api.nvim_win_get_config(win)
-    
-    -- If it's a floating window, add padding
-    if config.relative and config.relative ~= "" then
-      -- Set buffer options for padding
-      vim.bo.textwidth = 0
-      
-      -- Add virtual padding by adjusting window options
-      pcall(vim.api.nvim_win_set_option, win, 'sidescrolloff', 4)
-      pcall(vim.api.nvim_win_set_option, win, 'scrolloff', 2)
+    local cfg = vim.api.nvim_win_get_config(win)
+    if cfg.relative and cfg.relative ~= "" then
+      vim.wo[win].sidescrolloff = 4
+      vim.wo[win].scrolloff = 2
     end
   end,
 })
 
--- Add padding to Spectre specifically
 vim.api.nvim_create_autocmd("FileType", {
+  group = padding_group,
   pattern = "spectre_panel",
   callback = function()
-    vim.bo.textwidth = 0
     local win = vim.api.nvim_get_current_win()
-    pcall(vim.api.nvim_win_set_option, win, 'sidescrolloff', 4)
-    pcall(vim.api.nvim_win_set_option, win, 'scrolloff', 2)
+    vim.wo[win].sidescrolloff = 4
+    vim.wo[win].scrolloff = 2
   end,
 })
 

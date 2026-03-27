@@ -165,12 +165,314 @@ vim.keymap.set('n', '<leader>dO', function()
 	-- Popup opened silently
 end, { noremap = true, silent = false, desc = "Show line diagnostics (focusable popup)" })
 
+-- Diagnostic toggles with persistence for global state.
+local diagnostics_state_file = vim.fn.stdpath("state") .. "/diagnostics_state.json"
+local diagnostics_config_backup = nil
+
+local function diagnostics_sync_nvim_tree(enabled)
+  local ok_diag, tree_diag = pcall(require, "nvim-tree.diagnostics")
+  if ok_diag and tree_diag then
+    tree_diag.enable = enabled
+  end
+
+  local ok_core, core = pcall(require, "nvim-tree.core")
+  if ok_core and core and core.get_explorer then
+    local explorer = core.get_explorer()
+    if explorer and explorer.renderer and explorer.renderer.draw then
+      pcall(explorer.renderer.draw, explorer.renderer)
+      return
+    end
+  end
+
+  local ok_api, api = pcall(require, "nvim-tree.api")
+  if ok_api and api and api.tree and api.tree.is_visible and api.tree.reload then
+    if api.tree.is_visible() then
+      pcall(api.tree.reload)
+    end
+  end
+end
+
+local function diagnostics_apply_display_config(enabled)
+  if enabled then
+    if diagnostics_config_backup then
+      vim.diagnostic.config(diagnostics_config_backup)
+    end
+    return
+  end
+
+  if not diagnostics_config_backup then
+    diagnostics_config_backup = vim.deepcopy(vim.diagnostic.config())
+  end
+
+  vim.diagnostic.config({
+    virtual_text = false,
+    signs = false,
+    underline = false,
+    update_in_insert = false,
+    float = false,
+  })
+end
+
+local function diagnostics_read_state()
+  local file = io.open(diagnostics_state_file, "r")
+  if not file then
+    return nil
+  end
+  local content = file:read("*a")
+  file:close()
+  if not content or content == "" then
+    return nil
+  end
+
+  local ok, decoded = pcall(vim.json.decode, content)
+  if ok and type(decoded) == "table" then
+    return decoded
+  end
+  return nil
+end
+
+local function diagnostics_write_state(global_enabled)
+  local dir = vim.fn.fnamemodify(diagnostics_state_file, ":h")
+  vim.fn.mkdir(dir, "p")
+  local file = io.open(diagnostics_state_file, "w")
+  if not file then
+    return
+  end
+  file:write(vim.json.encode({ global_enabled = global_enabled }))
+  file:close()
+end
+
+local function diagnostics_set_enabled(bufnr, enabled)
+  -- Neovim changed diagnostic APIs across versions:
+  -- newer:  vim.diagnostic.enable(boolean, { bufnr = n })
+  -- older:  vim.diagnostic.enable(bufnr) / vim.diagnostic.disable(bufnr)
+  local api_ok = false
+  if type(vim.diagnostic.enable) == "function" then
+    if bufnr ~= nil then
+      api_ok = pcall(vim.diagnostic.enable, enabled, { bufnr = bufnr })
+      if not api_ok and enabled then
+        api_ok = pcall(vim.diagnostic.enable, bufnr)
+      end
+      if not api_ok and (not enabled) and type(vim.diagnostic.disable) == "function" then
+        api_ok = pcall(vim.diagnostic.disable, bufnr)
+      end
+    else
+      api_ok = pcall(vim.diagnostic.enable, enabled)
+      if not api_ok and enabled then
+        api_ok = pcall(vim.diagnostic.enable)
+      end
+      if not api_ok and (not enabled) and type(vim.diagnostic.disable) == "function" then
+        api_ok = pcall(vim.diagnostic.disable)
+      end
+    end
+  end
+  if api_ok then
+    return
+  end
+
+  if bufnr ~= nil then
+    if enabled then
+      vim.diagnostic.show(nil, bufnr)
+    else
+      vim.diagnostic.hide(nil, bufnr)
+    end
+    return
+  end
+
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    if enabled then
+      vim.diagnostic.show(nil, b)
+    else
+      vim.diagnostic.hide(nil, b)
+    end
+  end
+end
+
+local function diagnostics_buffer_allowed(bufnr)
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
+
+  if vim.b[bufnr].diagnostics_enabled == false then
+    return false
+  end
+
+  local ft = vim.bo[bufnr].filetype
+  if (vim.g.clojure_diagnostics_enabled == false) and (ft == "clojure" or ft == "edn") then
+    return false
+  end
+
+  return true
+end
+
+local function diagnostics_apply_global_state(enabled, persist)
+  vim.g.diagnostics_global_enabled = enabled
+  diagnostics_apply_display_config(enabled)
+  diagnostics_sync_nvim_tree(enabled)
+
+  diagnostics_set_enabled(nil, enabled)
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(b) then
+      if enabled and diagnostics_buffer_allowed(b) then
+        vim.diagnostic.show(nil, b)
+      else
+        vim.diagnostic.hide(nil, b)
+      end
+    end
+  end
+
+  if persist then
+    diagnostics_write_state(enabled)
+  end
+end
+
+-- Initialize persisted global diagnostics state (default ON).
+do
+  local state = diagnostics_read_state()
+  local enabled = true
+  if state and state.global_enabled == false then
+    enabled = false
+  end
+  diagnostics_apply_global_state(enabled, false)
+end
+
+-- Keep buffers in sync with global and clojure-specific toggles.
+vim.api.nvim_create_autocmd({ "BufEnter", "LspAttach", "FileType" }, {
+  group = vim.api.nvim_create_augroup("DiagnosticsToggleSync", { clear = true }),
+  pattern = "*",
+  callback = function(args)
+    local bufnr = args.buf
+    if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+      return
+    end
+
+    if vim.g.diagnostics_global_enabled == false then
+      diagnostics_apply_display_config(false)
+      vim.diagnostic.hide(nil, bufnr)
+      return
+    end
+
+    if vim.b[bufnr].diagnostics_enabled == false then
+      vim.diagnostic.hide(nil, bufnr)
+      return
+    end
+
+    local ft = vim.bo[bufnr].filetype
+    local clojure_off = (vim.g.clojure_diagnostics_enabled == false) and (ft == "clojure" or ft == "edn")
+    if clojure_off then
+      vim.diagnostic.hide(nil, bufnr)
+      return
+    end
+
+    diagnostics_set_enabled(bufnr, true)
+  end,
+})
+
+-- Toggle diagnostics for the current buffer (works for any filetype/source).
+vim.keymap.set('n', '<leader>dt', function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local ok, enabled = pcall(vim.diagnostic.is_enabled, { bufnr = bufnr })
+  if not ok then
+    ok, enabled = pcall(vim.diagnostic.is_enabled, bufnr)
+  end
+  if not ok then
+    enabled = vim.b[bufnr].diagnostics_enabled ~= false
+  end
+
+  diagnostics_set_enabled(bufnr, not enabled)
+  vim.b[bufnr].diagnostics_enabled = not enabled
+  vim.notify(
+    (enabled and "Diagnostics OFF (current buffer)" or "Diagnostics ON (current buffer)"),
+    vim.log.levels.INFO
+  )
+  diagnostics_sync_nvim_tree(vim.g.diagnostics_global_enabled ~= false)
+end, { noremap = true, silent = true, desc = "Toggle diagnostics (buffer)" })
+
+-- Toggle diagnostics globally (all buffers / all sources), persisted across restarts.
+vim.keymap.set('n', '<leader>dT', function()
+  local enabled = vim.g.diagnostics_global_enabled ~= false
+  diagnostics_apply_global_state(not enabled, true)
+  vim.notify(
+    (enabled and "Diagnostics OFF (global)" or "Diagnostics ON (global)"),
+    vim.log.levels.INFO
+  )
+end, { noremap = true, silent = true, desc = "Toggle diagnostics (global)" })
+
+-- Toggle diagnostics only for Clojure / EDN buffers (useful when clj-kondo noise is too high).
+vim.keymap.set('n', '<leader>dk', function()
+  local enabled = vim.g.clojure_diagnostics_enabled ~= false
+  vim.g.clojure_diagnostics_enabled = not enabled
+
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(b) then
+      local ft = vim.bo[b].filetype
+      if ft == "clojure" or ft == "edn" then
+        local allow = (vim.g.diagnostics_global_enabled ~= false) and (vim.g.clojure_diagnostics_enabled ~= false)
+        diagnostics_set_enabled(b, allow)
+      end
+    end
+  end
+
+  vim.notify(
+    enabled and "Clojure diagnostics OFF" or "Clojure diagnostics ON",
+    vim.log.levels.INFO
+  )
+  diagnostics_sync_nvim_tree(vim.g.diagnostics_global_enabled ~= false)
+end, { noremap = true, silent = true, desc = "Toggle diagnostics (Clojure)" })
+
+-- Clear Clojure analysis caches and restart clojure-lsp for the current workspace.
+vim.api.nvim_create_user_command("ClojureCacheReset", function()
+  local paths = {
+    vim.fn.stdpath("cache") .. "/clojure-lsp",
+    vim.fn.stdpath("cache") .. "/clj-kondo",
+    vim.fn.getcwd() .. "/.lsp/.cache",
+    vim.fn.getcwd() .. "/.clj-kondo/.cache",
+  }
+
+  for _, p in ipairs(paths) do
+    if vim.fn.isdirectory(p) == 1 then
+      vim.fn.delete(p, "rf")
+    end
+    vim.fn.mkdir(p, "p")
+  end
+
+  for _, client in ipairs(vim.lsp.get_clients({ name = "clojure_lsp" })) do
+    client.stop(true)
+  end
+
+  vim.defer_fn(function()
+    vim.cmd("edit")
+    vim.notify("Clojure caches cleared and clojure-lsp restarted", vim.log.levels.INFO)
+  end, 200)
+end, { desc = "Clear Clojure caches and restart clojure-lsp" })
+
+vim.keymap.set('n', '<leader>dK', '<cmd>ClojureCacheReset<CR>', {
+  noremap = true,
+  silent = true,
+  desc = "Reset Clojure caches",
+})
+
 -- GLOBAL code action keybinding (works everywhere, not just LSP buffers)
 vim.keymap.set('n', '<leader>ca', '<cmd>Lspsaga code_action<CR>', 
 	{ noremap = true, silent = true, desc = "Code actions" })
 
+local function run_ex_command_or_notify(cmd, desc)
+  local name = cmd:match("^%s*([%w_#%.%-]+)")
+  if not name or vim.fn.exists(":" .. name) == 0 then
+    vim.notify((desc or cmd) .. " command is unavailable", vim.log.levels.WARN)
+    return
+  end
+  vim.cmd(cmd)
+end
+
 -- map explorer command to make it easier to open
-vim.keymap.set("n", "<leader>pv", vim.cmd.Ex)
+vim.keymap.set("n", "<leader>pv", function()
+  if vim.fn.exists(":Ex") > 0 then
+    vim.cmd("Ex")
+  else
+    run_ex_command_or_notify("NvimTreeToggle", "Explorer")
+  end
+end, { desc = "Explorer view" })
 
 -- moving selection up and down (intelligently)
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
@@ -210,29 +512,53 @@ vim.keymap.set("n", "<C-Down>", ":resize -3<CR>", { silent = true, noremap = tru
 -- vim.keymap.set("i", "jj", "<ESC>")
 
 -- remap quit, save and save&&quit command
--- Enhanced quit - auto-closes if only tree/aerial remain
-vim.keymap.set('n', 'qq', function()
-  -- Close current buffer
-  vim.cmd('q!')
-  -- Check if should auto-close
-  vim.defer_fn(function()
-    require('config.auto_close')
-    vim.cmd('CloseIfEmpty')
-  end, 100)
-end, { silent = true, desc = "Quit and auto-close if empty" })
+-- NOTE: `qq/ww/wq` are two-key normal-mode maps on top of builtin `q`/`w`.
+-- They can feel laggy due to timeout-based key sequence resolution.
+-- Keep them for compatibility, but make handlers minimal and add instant aliases.
+vim.keymap.set('n', 'qq', '<cmd>q!<CR>', {
+  silent = true,
+  nowait = true,
+  desc = "Quit current window",
+})
+vim.keymap.set('n', 'wq', '<cmd>wq!<CR>', {
+  silent = true,
+  nowait = true,
+  desc = "Write and quit",
+})
+vim.keymap.set('n', 'ww', '<cmd>w<CR>', {
+  silent = true,
+  nowait = true,
+  desc = "Write file",
+})
 
-vim.keymap.set('n', 'wq', ':wq!<CR>', { silent = true })
-vim.keymap.set('n', 'ww', ':w<CR>', { silent = true })
+-- Instant, non-sequence aliases (no timeout wait).
+vim.keymap.set('n', 'Q', '<cmd>q!<CR>', { silent = true, desc = "Quit current window (instant)" })
+vim.keymap.set('n', 'W', '<cmd>w<CR>', { silent = true, desc = "Write file (instant)" })
+vim.keymap.set('n', 'WQ', '<cmd>wq!<CR>', { silent = true, desc = "Write and force quit (instant)" })
 
 
 -- -- Code_Runner
-vim.keymap.set('n', '<leader>r', ':RunCode<CR>', { noremap = true, silent = false })
-vim.keymap.set('n', '<leader>rf', ':RunFile<CR>', { noremap = true, silent = false })
-vim.keymap.set('n', '<leader>rft', ':RunFile tab<CR>', { noremap = true, silent = false })
-vim.keymap.set('n', '<leader>rp', ':RunProject<CR>', { noremap = true, silent = false })
-vim.keymap.set('n', '<leader>rc', ':RunClose<CR>', { noremap = true, silent = false })
-vim.keymap.set('n', '<leader>crf', ':CRFiletype<CR>', { noremap = true, silent = false })
-vim.keymap.set('n', '<leader>crp', ':CRProjects<CR>', { noremap = true, silent = false })
+vim.keymap.set('n', '<leader>r', function()
+  run_ex_command_or_notify("RunCode", "RunCode")
+end, { noremap = true, silent = true, desc = "Run code" })
+vim.keymap.set('n', '<leader>rf', function()
+  run_ex_command_or_notify("RunFile", "RunFile")
+end, { noremap = true, silent = true, desc = "Run file" })
+vim.keymap.set('n', '<leader>rft', function()
+  run_ex_command_or_notify("RunFile tab", "RunFile tab")
+end, { noremap = true, silent = true, desc = "Run file in tab" })
+vim.keymap.set('n', '<leader>rp', function()
+  run_ex_command_or_notify("RunProject", "RunProject")
+end, { noremap = true, silent = true, desc = "Run project" })
+vim.keymap.set('n', '<leader>rc', function()
+  run_ex_command_or_notify("RunClose", "RunClose")
+end, { noremap = true, silent = true, desc = "Run close" })
+vim.keymap.set('n', '<leader>crf', function()
+  run_ex_command_or_notify("CRFiletype", "CRFiletype")
+end, { noremap = true, silent = true, desc = "Code runner filetype" })
+vim.keymap.set('n', '<leader>crp', function()
+  run_ex_command_or_notify("CRProjects", "CRProjects")
+end, { noremap = true, silent = true, desc = "Code runner projects" })
 
 -- ⚡ RELOAD EVERYTHING - Config + Environment Variables
 _G.reload_all = function()
