@@ -1,4 +1,21 @@
 local config = function()
+  local function apply_tree_highlights()
+    local commands = {
+      "highlight NvimTreeNormal guibg=NONE ctermbg=NONE",
+      "highlight NvimTreeNormalNC guibg=NONE ctermbg=NONE",
+      "highlight NvimTreeEndOfBuffer guibg=NONE ctermbg=NONE",
+      "highlight NvimTreeWinSeparator guibg=NONE ctermbg=NONE",
+      "highlight NvimTreeVertSplit guibg=NONE ctermbg=NONE",
+      "highlight WinSeparator guifg=#8B8B8B guibg=NONE",
+    }
+
+    for _, cmd in ipairs(commands) do
+      pcall(vim.cmd, cmd)
+    end
+  end
+
+  _G.apply_nvim_tree_highlights = apply_tree_highlights
+
   local diagnostics_enabled = vim.g.diagnostics_global_enabled ~= false
 
   require("nvim-tree").setup({
@@ -84,11 +101,16 @@ local config = function()
   -- Set termguicolors to enable highlight groups
   vim.opt.termguicolors = true
 
-  -- nvim-tree transparent background
-  vim.cmd [[hi NvimTreeNormal guibg=NONE ctermbg=NONE]]
+  local tree_group = vim.api.nvim_create_augroup("NvimTreeHighlights", { clear = true })
+  vim.api.nvim_create_autocmd({ "ColorScheme", "VimEnter", "User" }, {
+    group = tree_group,
+    pattern = { "*", "LazyDone" },
+    callback = function()
+      vim.defer_fn(apply_tree_highlights, 30)
+    end,
+  })
 
-  -- Set window separator color
-  vim.cmd([[highlight WinSeparator guifg=#8B8B8B guibg=NONE]])
+  apply_tree_highlights()
 end
 
 return {

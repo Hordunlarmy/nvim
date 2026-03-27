@@ -14,6 +14,7 @@ local opts = {
 		"marksman",             -- Markdown
 		"gopls",                -- Go language server (for Go support)
 		"clojure_lsp",          -- Clojure language server
+		"sqls",                 -- SQL language server
 		-- "clangd",            -- C and C++ (uncomment if needed)
 		-- "intelephense",      -- PHP (uncomment if needed)
 		-- "rust_analyzer",     -- Rust (uncomment if needed)

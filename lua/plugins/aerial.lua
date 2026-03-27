@@ -61,8 +61,24 @@ return {
       return true
     end
 
+    local function aerial_open_in_tab(tabnr)
+      tabnr = tabnr or 0
+      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tabnr)) do
+        local buf = vim.api.nvim_win_get_buf(win)
+        if vim.bo[buf].filetype == "aerial" then
+          return true
+        end
+      end
+      return false
+    end
+
     require("aerial").setup({
-    backends = { "lsp", "treesitter" },
+    backends = {
+      _ = { "lsp", "treesitter" },
+      sql = { "lsp" },
+      mysql = { "lsp" },
+      plsql = { "lsp" },
+    },
     -- Prefer LSP for Clojure to recognize custom macros like defapi
     prefer_treesitter = false,
     layout = {
@@ -116,14 +132,19 @@ return {
     disable_max_lines = 10000,
     disable_max_size = 2000000,
     filter_kind = {
-      "Class",
-      "Constructor",
-      "Enum",
-      "Function",
-      "Interface",
-      "Module",
-      "Method",
-      "Struct",
+      _ = {
+        "Class",
+        "Constructor",
+        "Enum",
+        "Function",
+        "Interface",
+        "Module",
+        "Method",
+        "Struct",
+      },
+      sql = false,
+      mysql = false,
+      plsql = false,
     },
     highlight_mode = "split_width",
     highlight_closest = true,
@@ -234,27 +255,24 @@ return {
       end,
     })
 
-    -- Fallback auto-open to keep behavior consistent even when backend attach timing varies.
     vim.api.nvim_create_autocmd({ "BufEnter", "LspAttach" }, {
-      group = vim.api.nvim_create_augroup("AerialAutoOpenFallback", { clear = true }),
+      group = vim.api.nvim_create_augroup("AerialAutoOpenSinglePane", { clear = true }),
       callback = function(args)
         local bufnr = args.buf
         if not should_auto_open(bufnr) then
           return
         end
+        if aerial_open_in_tab(0) then
+          return
+        end
+
         local ok, aerial = pcall(require, "aerial")
         if not ok then
           return
         end
-        local is_open = false
-        if type(aerial.is_open) == "function" then
-          local ok_open, open = pcall(aerial.is_open)
-          is_open = ok_open and open
-        end
-        if not is_open then
-          pcall(aerial.open, { focus = false })
-        end
+        pcall(aerial.open, { focus = false })
       end,
     })
+
   end,
 }

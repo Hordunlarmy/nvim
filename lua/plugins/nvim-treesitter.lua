@@ -40,6 +40,7 @@ local config = function()
 			"cpp",
 			"java",
 			"clojure",
+			"sql",
 		},
 		auto_install = true,
 		highlight = {

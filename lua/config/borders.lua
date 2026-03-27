@@ -39,6 +39,7 @@ local function set_float_colors()
   vim.api.nvim_set_hl(0, "LazyFloatBorder", border)
 
   -- Mason
+  vim.api.nvim_set_hl(0, "MasonBorder", border)
   vim.api.nvim_set_hl(0, "MasonNormal", { link = "Normal" })
   vim.api.nvim_set_hl(0, "MasonFloat", { link = "Normal" })
 

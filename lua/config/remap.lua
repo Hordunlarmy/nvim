@@ -27,17 +27,17 @@ vim.keymap.set('n', '<leader>do', function()
 	vim.bo[buf].modifiable = false
 	vim.bo[buf].buftype = "nofile"
 	
-	-- Calculate centered position
-	local width = 70
-	local height = #lines + 2
-	local win_width = vim.o.columns
-	local win_height = vim.o.lines
-	local row = math.floor((win_height - height) / 2)
-	local col = math.floor((win_width - width) / 2)
+	-- Calculate centered position in the CURRENT window (not full editor).
+	local cur_win_width = vim.api.nvim_win_get_width(0)
+	local cur_win_height = vim.api.nvim_win_get_height(0)
+	local width = math.min(70, math.max(40, math.floor(cur_win_width * 0.9)))
+	local height = math.min(#lines + 2, math.max(6, math.floor(cur_win_height * 0.8)))
+	local row = math.max(0, math.floor((cur_win_height - height) / 2))
+	local col = math.max(0, math.floor((cur_win_width - width) / 2))
 	
 	-- Create floating window
 	local win = vim.api.nvim_open_win(buf, true, {
-		relative = "editor",
+		relative = "win",
 		width = width,
 		height = height,
 		row = row,
@@ -110,17 +110,17 @@ vim.keymap.set('n', '<leader>dO', function()
 	vim.bo[buf].modifiable = false
 	vim.bo[buf].buftype = "nofile"
 	
-	-- Calculate centered position
-	local width = 70
-	local height = #lines + 2
-	local win_width = vim.o.columns
-	local win_height = vim.o.lines
-	local row = math.floor((win_height - height) / 2)
-	local col = math.floor((win_width - width) / 2)
+	-- Calculate centered position in the CURRENT window (not full editor).
+	local cur_win_width = vim.api.nvim_win_get_width(0)
+	local cur_win_height = vim.api.nvim_win_get_height(0)
+	local width = math.min(70, math.max(40, math.floor(cur_win_width * 0.9)))
+	local height = math.min(#lines + 2, math.max(6, math.floor(cur_win_height * 0.8)))
+	local row = math.max(0, math.floor((cur_win_height - height) / 2))
+	local col = math.max(0, math.floor((cur_win_width - width) / 2))
 	
 	-- Create floating window
 	local win = vim.api.nvim_open_win(buf, true, {
-		relative = "editor",
+		relative = "win",
 		width = width,
 		height = height,
 		row = row,
@@ -561,6 +561,24 @@ vim.keymap.set('n', '<leader>crp', function()
 end, { noremap = true, silent = true, desc = "Code runner projects" })
 
 -- ⚡ RELOAD EVERYTHING - Config + Environment Variables
+local function restore_ui_state_after_reload()
+  if type(_G.apply_nvim_tree_highlights) == "function" then
+    pcall(_G.apply_nvim_tree_highlights)
+  else
+    pcall(vim.cmd, "highlight NvimTreeNormal guibg=NONE ctermbg=NONE")
+    pcall(vim.cmd, "highlight NvimTreeNormalNC guibg=NONE ctermbg=NONE")
+    pcall(vim.cmd, "highlight WinSeparator guifg=#8B8B8B guibg=NONE")
+  end
+  pcall(vim.cmd, "redraw!")
+end
+
+local function reload_loaded_plugins_silent()
+  local ok_plugin, plugin = pcall(require, "lazy.core.plugin")
+  if ok_plugin and type(plugin.load) == "function" then
+    pcall(plugin.load)
+  end
+end
+
 _G.reload_all = function()
   vim.notify("🔄 Reloading environment + config...", vim.log.levels.INFO)
   
@@ -601,15 +619,24 @@ _G.reload_all = function()
     vim.notify("❌ Could not read vault cache", vim.log.levels.ERROR)
   end
   
-  -- 2. Clear loaded Lua modules
+  -- 2. Clear loaded Lua modules (do NOT re-source init.lua; lazy.nvim doesn't support that)
   for name, _ in pairs(package.loaded) do
     if name:match('^config') or name:match('^plugins') or name:match('^util') then
       package.loaded[name] = nil
     end
   end
+
+  if vim.loader and type(vim.loader.reset) == "function" then
+    pcall(vim.loader.reset)
+  end
   
-  -- 3. Source Neovim config
-  vim.cmd('source ~/.config/nvim/init.lua')
+  -- 3. Reload core config modules
+  pcall(require, "config")
+
+  -- 4. Reload already-loaded plugins without lazy's noisy command wrapper.
+  reload_loaded_plugins_silent()
+
+  vim.defer_fn(restore_ui_state_after_reload, 120)
   
   vim.notify("✨ Everything reloaded!", vim.log.levels.INFO, { timeout = 1500 })
 end
@@ -621,7 +648,16 @@ _G.reload_config = function()
       package.loaded[name] = nil
     end
   end
-  vim.cmd('source ~/.config/nvim/init.lua')
+  if vim.loader and type(vim.loader.reset) == "function" then
+    pcall(vim.loader.reset)
+  end
+
+  pcall(require, "config")
+
+  reload_loaded_plugins_silent()
+
+  vim.defer_fn(restore_ui_state_after_reload, 120)
+
   vim.notify("✨ Config reloaded!", vim.log.levels.INFO, { timeout = 1500 })
 end
 
@@ -769,10 +805,21 @@ function _G.get_visual_selection()
   return table.concat(lines, '\n')
 end
 
-vim.api.nvim_set_keymap('v', '<C-f>',
-  [[<cmd>lua require('telescope.builtin').live_grep({ default_text = get_visual_selection() })<CR>]],
-  { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<C-f>', '<cmd>Telescope live_grep<cr>', { noremap = true, silent = true })
+vim.keymap.set('v', '<C-f>', function()
+  local theme = require("telescope.themes").get_cursor({
+    layout_config = { width = 0.92, height = 0.75 },
+  })
+  require('telescope.builtin').live_grep(vim.tbl_extend("force", theme, {
+    default_text = _G.get_visual_selection(),
+  }))
+end, { noremap = true, silent = true, desc = "Live grep (visual selection)" })
+
+vim.keymap.set('n', '<C-f>', function()
+  local theme = require("telescope.themes").get_cursor({
+    layout_config = { width = 0.92, height = 0.75 },
+  })
+  require('telescope.builtin').live_grep(theme)
+end, { noremap = true, silent = true, desc = "Live grep" })
 
 -- Indenting
 vim.keymap.set("v", "<", "<gv", { silent = true, noremap = true })

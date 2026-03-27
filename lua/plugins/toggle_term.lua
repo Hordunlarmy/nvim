@@ -32,6 +32,21 @@ return {
     float_opts = {
       border = "curved",
       winblend = 0,
+      relative = "win",
+      width = function()
+        return math.max(40, math.floor(vim.api.nvim_win_get_width(0) * 0.9))
+      end,
+      height = function()
+        return math.max(8, math.floor(vim.api.nvim_win_get_height(0) * 0.8))
+      end,
+      row = function()
+        local h = math.max(8, math.floor(vim.api.nvim_win_get_height(0) * 0.8))
+        return math.max(0, math.floor((vim.api.nvim_win_get_height(0) - h) / 2))
+      end,
+      col = function()
+        local w = math.max(40, math.floor(vim.api.nvim_win_get_width(0) * 0.9))
+        return math.max(0, math.floor((vim.api.nvim_win_get_width(0) - w) / 2))
+      end,
       highlights = {
         border = "Normal",
         background = "Normal",
@@ -45,5 +60,4 @@ return {
     },
   },
 }
-
 

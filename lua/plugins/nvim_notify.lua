@@ -1,4 +1,49 @@
 -- nvim-notify: Better notification manager
+
+local function ensure_noice()
+  local ok_noice, noice = pcall(require, "noice")
+  if ok_noice then
+    return true, noice
+  end
+
+  local ok_lazy, lazy = pcall(require, "lazy")
+  if ok_lazy and type(lazy.load) == "function" then
+    pcall(lazy.load, { plugins = { "noice.nvim" } })
+    ok_noice, noice = pcall(require, "noice")
+    if ok_noice then
+      return true, noice
+    end
+  end
+
+  return false, nil
+end
+
+local function run_noice_cmd(cmd)
+  local ok_noice, noice = ensure_noice()
+  if ok_noice and type(noice.cmd) == "function" then
+    if pcall(noice.cmd, cmd) then
+      return true
+    end
+  end
+
+  if vim.fn.exists(":Noice") == 2 then
+    return pcall(vim.cmd, "Noice " .. cmd)
+  end
+  return false
+end
+
+local function dismiss_all_notifications()
+  pcall(function()
+    require("notify").dismiss({ silent = true, pending = true })
+  end)
+  run_noice_cmd("dismiss")
+
+  local ok_ticker, ticker = pcall(require, "util.notify_ticker")
+  if ok_ticker and type(ticker.clear) == "function" then
+    pcall(ticker.clear)
+  end
+end
+
 return {
   "rcarriga/nvim-notify",
   event = "VeryLazy",
@@ -6,33 +51,27 @@ return {
     {
       "<leader>un",
       function()
-        pcall(function()
-          require("notify").dismiss({ silent = true, pending = true })
-        end)
-        pcall(vim.cmd, "Noice dismiss")
-        pcall(vim.cmd, "NoiceDismiss")
+        dismiss_all_notifications()
       end,
       desc = "Dismiss all Notifications",
     },
     {
       "<leader>uh",
       function()
-        local ok_telescope, telescope = pcall(require, "telescope")
-        if ok_telescope then
-          pcall(telescope.load_extension, "notify")
-          local ok_notify_picker = pcall(function()
-            telescope.extensions.notify.notify({
-              layout_strategy = "vertical",
-              layout_config = { width = 0.8, height = 0.8 },
-            })
-          end)
-          if ok_notify_picker then
-            return
-          end
+        if not run_noice_cmd("history") then
+          vim.notify("Noice history is unavailable", vim.log.levels.WARN)
         end
-        pcall(vim.cmd, "Noice history")
       end,
-      desc = "Show notification history (scrollable)",
+      desc = "Show message history (copyable split)",
+    },
+    {
+      "<leader>uH",
+      function()
+        if not run_noice_cmd("last") then
+          vim.notify("Noice last is unavailable", vim.log.levels.WARN)
+        end
+      end,
+      desc = "Show last message (details)",
     },
   },
   opts = {
@@ -72,6 +111,5 @@ return {
   config = function(_, opts)
     local notify = require("notify")
     notify.setup(opts)
-    vim.notify = notify
   end,
 }

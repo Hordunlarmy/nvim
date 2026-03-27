@@ -6,23 +6,29 @@ return {
     {
       "<leader><leader>",
       function()
-        require("telescope.builtin").keymaps({
+        local theme = require("telescope.themes").get_cursor({
           prompt_title = "Keymaps (search by key, desc, plugin)",
-          layout_strategy = "vertical",
-          layout_config = { width = 0.8, height = 0.85 },
-          show_plug = false,
+          layout_config = { width = 0.9, height = 0.7 },
+          previewer = false,
         })
+        require("telescope.builtin").keymaps(vim.tbl_extend("force", theme, {
+          show_plug = false,
+        }))
       end,
       desc = "Search Keymaps (desc + tags)",
     },
     {
       "<leader>fC",
       function()
-        require("telescope.builtin").keymaps({
+        local theme = require("telescope.themes").get_cursor({
           prompt_title = "Clojure Tooling Keymaps",
           default_text = "conjure",
-          show_plug = false,
+          layout_config = { width = 0.9, height = 0.7 },
+          previewer = false,
         })
+        require("telescope.builtin").keymaps(vim.tbl_extend("force", theme, {
+          show_plug = false,
+        }))
       end,
       desc = "Search Clojure keymaps (Conjure/Aerial)",
     },
@@ -63,11 +69,18 @@ return {
         },
       },
       win = {
+        no_overlap = true,
         border = "rounded",  -- White border
         padding = { 2, 4 },  -- More padding
+        width = { min = 26, max = 80 },
+        height = { min = 4, max = 22 },
         wo = {
           winblend = 0,  -- Opaque
         },
+      },
+      keys = {
+        scroll_down = "<C-d>",
+        scroll_up = "<C-u>",
       },
       layout = {
         spacing = 3,
@@ -178,7 +191,8 @@ return {
       
       -- UI toggles (alphabetically sorted)
       { "<leader>uc", desc = "Force green cursor" },
-      { "<leader>uh", desc = "Notification history (scrollable)" },
+      { "<leader>uh", desc = "Message history (copyable split)" },
+      { "<leader>uH", desc = "Last message (details)" },
       { "<leader>uL", desc = "Rebuild LuaSnip (fix jsregexp)" },
       { "<leader>un", desc = "Dismiss notifications" },
       { "<leader>uN", desc = "Fix line numbers" },
@@ -412,6 +426,15 @@ return {
       { "vac", desc = "Select around class", mode = "n" },
       { "cif", desc = "Change inside function", mode = "n" },
       { "yaf", desc = "Yank around function", mode = "n" },
+    })
+
+    vim.api.nvim_create_autocmd("FileType", {
+      group = vim.api.nvim_create_augroup("WhichKeyMouseScroll", { clear = true }),
+      pattern = "which-key",
+      callback = function(args)
+        vim.keymap.set("n", "<ScrollWheelDown>", "<C-d>", { buffer = args.buf, noremap = true, silent = true, nowait = true })
+        vim.keymap.set("n", "<ScrollWheelUp>", "<C-u>", { buffer = args.buf, noremap = true, silent = true, nowait = true })
+      end,
     })
   end,
 }

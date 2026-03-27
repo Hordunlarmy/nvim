@@ -45,19 +45,26 @@ return {
     vim.api.nvim_create_autocmd("FileType", {
       pattern = "grug-far",
       callback = function()
+        local anchor = vim.fn.win_getid(vim.fn.winnr("#"))
+        if anchor == 0 or not vim.api.nvim_win_is_valid(anchor) then
+          anchor = vim.api.nvim_get_current_win()
+        end
         -- Small delay to let the window initialize
         vim.defer_fn(function()
           local win = vim.api.nvim_get_current_win()
           
-          -- Calculate centered position
-          local width = math.floor(vim.o.columns * 0.9)
-          local height = math.floor(vim.o.lines * 0.9)
-          local row = math.floor((vim.o.lines - height) / 2)
-          local col = math.floor((vim.o.columns - width) / 2)
+          -- Calculate centered position inside the current window.
+          local win_width = vim.api.nvim_win_get_width(anchor)
+          local win_height = vim.api.nvim_win_get_height(anchor)
+          local width = math.max(40, math.floor(win_width * 0.9))
+          local height = math.max(10, math.floor(win_height * 0.9))
+          local row = math.max(0, math.floor((win_height - height) / 2))
+          local col = math.max(0, math.floor((win_width - width) / 2))
           
           -- Convert to floating window
           vim.api.nvim_win_set_config(win, {
-            relative = "editor",
+            relative = "win",
+            win = anchor,
             width = width,
             height = height,
             row = row,
@@ -115,4 +122,3 @@ return {
     },
   },
 }
-

@@ -25,7 +25,13 @@ M.on_attach = function(client, bufnr)
 	vim.keymap.set("n", "]w", function() vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.WARN }) end, { buffer = bufnr, silent = true, desc = "Next warning" })
 	vim.keymap.set("n", "[w", function() vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.WARN }) end, { buffer = bufnr, silent = true, desc = "Previous warning" })
 	vim.keymap.set("n", "K", function()
-		vim.lsp.buf.hover({ border = "rounded" })
+		local win_width = vim.api.nvim_win_get_width(0)
+		local win_height = vim.api.nvim_win_get_height(0)
+		vim.lsp.buf.hover({
+			border = "rounded",
+			max_width = math.max(30, math.floor(win_width * 0.9)),
+			max_height = math.max(8, math.floor(win_height * 0.8)),
+		})
 	end, { buffer = bufnr, silent = true, desc = "Hover documentation" })
 	mapkey("<A-d>", "Lspsaga term_toggle", "n", opts)                  -- terminal buffer
 

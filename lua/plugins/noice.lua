@@ -4,6 +4,16 @@ return {
 	"folke/noice.nvim",
 	event = "VeryLazy",
 	opts = {
+			messages = {
+				enabled = true,
+				view = "mini",
+				view_error = "mini",
+				view_warn = "mini",
+				view_history = "popup",
+			},
+		notify = {
+			enabled = false,
+		},
 		routes = {
 			{
 				filter = { event = "msg_showmode" },
@@ -11,10 +21,24 @@ return {
 			},
 		},
 
-		views = {
-			cmdline_popup = {
-				position = {
-					row = "100%",
+			views = {
+				history_win = {
+					backend = "popup",
+					relative = "win",
+					enter = true,
+					position = "50%",
+					size = {
+						width = 0.90,
+						height = 0.75,
+					},
+					border = {
+						style = "rounded",
+					},
+				},
+				cmdline_popup = {
+					relative = "win",
+					position = {
+						row = "100%",
 					col = "50%",
 				},
 				size = {
@@ -23,7 +47,7 @@ return {
 				},
 			},
 			popupmenu = {
-				relative = "editor",
+				relative = "win",
 				position = {
 					row = 8,
 					col = "50%",
@@ -42,24 +66,33 @@ return {
 			},
 		},
 
-		lsp = {
-			progress = {
-				enabled = false,
-			},
+			lsp = {
+				progress = {
+					enabled = false,
+				},
 			-- override markdown rendering so that **cmp** and other plugins use **Treesitter**
 			override = {
 				["vim.lsp.util.convert_input_to_markdown_lines"] = true,
 				["vim.lsp.util.stylize_markdown"] = true,
 				["cmp.entry.get_documentation"] = true,
 			},
-		},
-		-- you can enable a preset for easier configuration
+			hover = {
+				enabled = false,
+			},
+			},
+				commands = {
+					history = {
+						view = "history_win",
+						opts = { enter = true, format = "details" },
+					},
+				},
+			-- you can enable a preset for easier configuration
 		presets = {
 			bottom_search = true,      -- use a classic bottom cmdline for search
 			command_palette = true,    -- position the cmdline and popupmenu together
 			long_message_to_split = false, -- Keep messages in floating windows
 			inc_rename = false,        -- enables an input dialog for inc-rename.nvim
-			lsp_doc_border = true,     -- add a border to hover docs and signature help (FLOATING POPUP!)
+			lsp_doc_border = false,    -- keep native LSP hover sizing behavior
 		},
 	},
 	dependencies = {

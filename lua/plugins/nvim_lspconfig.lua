@@ -64,6 +64,18 @@ local config = function()
 		filetypes = { "json", "jsonc" },
 	})
 
+	-- sql
+	setup_server("sqls", {
+		capabilities = capabilities,
+		on_attach = on_attach,
+		filetypes = { "sql", "mysql", "plsql" },
+		root_dir = function(fname)
+			return lspconfig.util.root_pattern(".sqls.yml", ".git")(fname)
+				or lspconfig.util.path.dirname(fname)
+		end,
+		single_file_support = true,
+	})
+
 	-- python
 	setup_server("jedi_language_server", {
 		capabilities = capabilities,

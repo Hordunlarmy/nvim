@@ -72,7 +72,7 @@ return {
       nui = {
         position = "50%",
         size = nil,
-        relative = "editor",
+        relative = "win",
         border = {
           style = "rounded",
         },
@@ -91,7 +91,7 @@ return {
       builtin = {
         anchor = "NW",
         border = "rounded",
-        relative = "editor",
+        relative = "win",
         win_options = {
           winblend = 0,  -- Opaque
         },
@@ -115,4 +115,3 @@ return {
     },
   },
 }
-
