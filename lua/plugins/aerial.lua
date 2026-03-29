@@ -33,6 +33,9 @@ return {
       if vim.t.conjure_log_visible then
         return false
       end
+      if vim.t.sidekick_active then
+        return false
+      end
       if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
         return false
       end
@@ -162,7 +165,19 @@ return {
     link_tree_to_folds = true,
     nerd_font = "auto",
     on_attach = function(bufnr) end,
-    on_first_symbols = function(bufnr) end,
+    on_first_symbols = function(bufnr)
+      if not should_auto_open(bufnr) then
+        return
+      end
+      if aerial_open_in_tab(0) then
+        return
+      end
+      local ok, aerial = pcall(require, "aerial")
+      if not ok then
+        return
+      end
+      pcall(aerial.open, { focus = false })
+    end,
     open_automatic = should_auto_open,
     post_jump_cmd = "normal! zz",
     close_on_select = false,
@@ -211,7 +226,14 @@ return {
     
     -- Set keymaps manually with graceful fallback when no backend is available.
     vim.keymap.set("n", "<leader>o", function()
-      local ok = pcall(vim.cmd, "AerialToggle!")
+      -- Manual toggle should always work even if sidekick previously owned the right panel.
+      vim.t.sidekick_active = false
+      local ok_aerial, aerial = pcall(require, "aerial")
+      if not ok_aerial then
+        vim.notify("Aerial outline unavailable for this buffer", vim.log.levels.WARN)
+        return
+      end
+      local ok = pcall(aerial.toggle, { focus = false })
       if not ok then
         vim.notify("Aerial outline unavailable for this buffer", vim.log.levels.WARN)
       end

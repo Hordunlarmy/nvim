@@ -1,6 +1,6 @@
 local M = {}
 
-local frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+local frames = { "◴", "◷", "◶", "◵" }
 
 local setup_done = false
 local tick = nil
@@ -11,11 +11,10 @@ local lazy_started_at = nil
 local manual_state = {}
 local lsp_progress_tokens = {}
 local lsp_pending_requests = {}
-local builtin_status_started_at = nil
 
-local STALE_TOKEN_MS = 120000
-local STALE_REQUEST_MS = 45000
-local VISIBILITY_DELAY_MS = 5000
+local STALE_TOKEN_MS = 10000
+local STALE_REQUEST_MS = 6000
+local VISIBILITY_DELAY_MS = 250
 
 local function now_ms()
   return math.floor(vim.uv.hrtime() / 1e6)
@@ -35,6 +34,21 @@ local function compact(text, max_len)
     return text
   end
   return text:sub(1, max_len - 3) .. "..."
+end
+
+local function marquee(text, width)
+  if #text <= width then
+    return text
+  end
+  local gap = "   "
+  local loop = text .. gap
+  local n = #loop
+  local start = (math.floor(vim.uv.hrtime() / 1.2e8) % n) + 1
+  local piece = loop:sub(start, start + width - 1)
+  if #piece < width then
+    piece = piece .. loop:sub(1, width - #piece)
+  end
+  return piece
 end
 
 local function parse_percent(text)
@@ -245,35 +259,10 @@ local function has_manual()
   return next(manual_state) ~= nil
 end
 
-local function builtin_lsp_status()
-  if type(vim.lsp) ~= "table" or type(vim.lsp.status) ~= "function" then
-    builtin_status_started_at = nil
-    return nil, nil, nil
-  end
-  local ok, raw = pcall(vim.lsp.status)
-  if not ok or type(raw) ~= "string" then
-    builtin_status_started_at = nil
-    return nil, nil, nil
-  end
-  raw = vim.trim(raw)
-  if raw == "" then
-    builtin_status_started_at = nil
-    return nil, nil, nil
-  end
-  if builtin_status_started_at == nil then
-    builtin_status_started_at = now_ms()
-  end
-  return compact(sanitize_text(raw), 44), parse_percent(raw), (now_ms() - builtin_status_started_at)
-end
-
 local function has_lsp_activity()
   purge_stale_tokens()
   purge_stale_requests()
-  if next(lsp_progress_tokens) ~= nil or next(lsp_pending_requests) ~= nil then
-    return true
-  end
-  local status_text = builtin_lsp_status()
-  return status_text ~= nil
+  return next(lsp_progress_tokens) ~= nil or next(lsp_pending_requests) ~= nil
 end
 
 local function status_snapshot()
@@ -313,11 +302,6 @@ local function status_snapshot()
   local req = latest_matching_entry(lsp_pending_requests, is_visible)
   if req then
     return true, compact("LSP " .. short_method(req.method), 44), nil
-  end
-
-  local builtin_label, builtin_pct, builtin_age = builtin_lsp_status()
-  if builtin_label and builtin_age >= VISIBILITY_DELAY_MS then
-    return true, builtin_label, builtin_pct
   end
 
   if lazy_busy and lazy_started_at and (now_ms() - lazy_started_at) >= VISIBILITY_DELAY_MS then
@@ -478,12 +462,9 @@ function M.component()
     return ""
   end
 
-  local width = math.max(12, math.min(24, math.floor(vim.o.columns * 0.14)))
-  local fill = pct and math.floor((pct / 100) * width) or (math.floor(vim.uv.hrtime() / 2e8) % (width + 1))
-  fill = clamp(fill, 0, width)
-  local bar = string.rep("█", fill) .. string.rep("░", width - fill)
   local pct_text = pct and string.format(" %d%%", pct) or ""
-  return string.format("%s %s %s%s", spinner(), bar, compact(label, 28), pct_text)
+  local text = string.format("Loading: %s%s", sanitize_text(label), pct_text)
+  return marquee(text, math.max(24, math.floor(vim.o.columns * 0.22)))
 end
 
 function M.fullwidth_component()
@@ -491,20 +472,17 @@ function M.fullwidth_component()
   if not busy then
     return ""
   end
-
-  local total = math.max(30, vim.o.columns)
-  local left = spinner() .. " "
   local pct_text = pct and string.format(" %d%%", pct) or ""
-  local right_label = " " .. compact(label .. pct_text, math.max(18, math.floor(total * 0.36)))
-  local left_w = vim.fn.strdisplaywidth(left)
-  local right_w = vim.fn.strdisplaywidth(right_label)
-  local bar_w = math.max(10, total - left_w - right_w)
+  local text = string.format("Loading: %s%s", sanitize_text(label), pct_text)
+  return marquee(text, math.max(32, math.floor(vim.o.columns * 0.34)))
+end
 
-  local fill = pct and math.floor((pct / 100) * bar_w) or (math.floor(vim.uv.hrtime() / 2e8) % (bar_w + 1))
-  fill = clamp(fill, 0, bar_w)
-  local bar = string.rep("█", fill) .. string.rep("░", bar_w - fill)
-
-  return left .. bar .. right_label
+function M.icon_component()
+  local busy = status_snapshot()
+  if not busy then
+    return ""
+  end
+  return spinner()
 end
 
 return M

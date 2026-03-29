@@ -4,6 +4,8 @@ local queue = {}
 local current = nil
 local offset = 0
 local timer = nil
+local history = {}
+local MAX_HISTORY = 400
 
 local function now_ms()
   return math.floor(vim.uv.hrtime() / 1e6)
@@ -38,11 +40,12 @@ local function clamp(value, min_v, max_v)
 end
 
 local function resolve_timeout(text, level, opts)
+  local min_timeout = 7000
   if type(opts) == "table" and type(opts.timeout) == "number" and opts.timeout > 0 then
-    return clamp(math.floor(opts.timeout), 800, 30000)
+    return clamp(math.floor(opts.timeout), min_timeout, 30000)
   end
 
-  local base = clamp(1400 + (#text * 95), 4200, 22000)
+  local base = clamp(1400 + (#text * 95), min_timeout, 22000)
   if level == vim.log.levels.ERROR then
     base = math.min(base + 2200, 26000)
   elseif level == vim.log.levels.WARN then
@@ -114,6 +117,15 @@ function M.push(msg, level, opts)
   end
 
   local sev = level or vim.log.levels.INFO
+  table.insert(history, {
+    text = text,
+    level = sev,
+    ts = os.date("%H:%M:%S"),
+  })
+  if #history > MAX_HISTORY then
+    table.remove(history, 1)
+  end
+
   table.insert(queue, {
     text = text,
     level = sev,
@@ -137,6 +149,89 @@ end
 
 function M.has_current()
   return current ~= nil
+end
+
+function M.get_history()
+  local out = {}
+  for i = 1, #history do
+    out[i] = history[i]
+  end
+  return out
+end
+
+local function level_tag(level)
+  if level == vim.log.levels.ERROR then
+    return "ERROR"
+  elseif level == vim.log.levels.WARN then
+    return "WARN"
+  elseif level == vim.log.levels.DEBUG then
+    return "DEBUG"
+  end
+  return "INFO"
+end
+
+function M.show_history(opts)
+  opts = opts or {}
+  local entries = M.get_history()
+
+  local lines = {}
+  if #entries == 0 then
+    lines = { "No messages in history." }
+  elseif opts.last then
+    local item = entries[#entries]
+    lines = {
+      string.format("[%s] [%s]", item.ts or "--:--:--", level_tag(item.level)),
+      "",
+      item.text or "",
+    }
+  else
+    for _, item in ipairs(entries) do
+      lines[#lines + 1] = string.format("[%s] [%s] %s", item.ts or "--:--:--", level_tag(item.level), item.text or "")
+    end
+  end
+
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].bufhidden = "wipe"
+  vim.bo[buf].swapfile = false
+  vim.bo[buf].modifiable = true
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = false
+
+  local cur_win = vim.api.nvim_get_current_win()
+  local win_w = vim.api.nvim_win_get_width(cur_win)
+  local win_h = vim.api.nvim_win_get_height(cur_win)
+  local width = math.min(math.max(70, math.floor(win_w * 0.90)), 140)
+  local height = math.min(math.max(10, math.floor(win_h * 0.78)), math.max(3, #lines + 2))
+  local row = math.max(0, math.floor((win_h - height) / 2))
+  local col = math.max(0, math.floor((win_w - width) / 2))
+
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = "win",
+    win = cur_win,
+    row = row,
+    col = col,
+    width = width,
+    height = height,
+    style = "minimal",
+    border = "rounded",
+  })
+
+  vim.wo[win].wrap = true
+  vim.wo[win].linebreak = true
+  vim.wo[win].cursorline = true
+  vim.wo[win].number = false
+  vim.wo[win].relativenumber = false
+
+  local function close_win()
+    if vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_close(win, true)
+    end
+  end
+  vim.keymap.set("n", "q", close_win, { buffer = buf, silent = true, nowait = true })
+  vim.keymap.set("n", "<Esc>", close_win, { buffer = buf, silent = true, nowait = true })
+
+  return true
 end
 
 local function marquee(text, width, always_roll)
@@ -201,7 +296,7 @@ function M.statusline(max_width)
     icon = ""
   end
 
-  return icon .. " " .. marquee(current.text, width, true)
+  return icon .. " " .. marquee(current.text, width, false)
 end
 
 vim.api.nvim_create_autocmd("VimLeavePre", {

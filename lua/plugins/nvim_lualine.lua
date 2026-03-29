@@ -71,11 +71,27 @@ local config = function()
         return ok and value == true
     end
 
+    local function navic_location_safe()
+        local ok_navic, navic = pcall(require, "nvim-navic")
+        if not ok_navic or type(navic.is_available) ~= "function" then
+            return ""
+        end
+        local ok_available, available = pcall(navic.is_available)
+        if not ok_available or not available then
+            return ""
+        end
+        local ok_location, location = pcall(navic.get_location)
+        if not ok_location or type(location) ~= "string" or location == "" then
+            return ""
+        end
+        return sanitize_statusline(location)
+    end
+
     local function busy()
         return progress_busy_safe()
     end
-    local function idle()
-        return not progress_busy_safe()
+    local function show_ticker()
+        return ticker_has_current_safe()
     end
 
     lualine.setup({
@@ -89,43 +105,39 @@ local config = function()
         },
         sections = {
             lualine_a = {
-                { "mode", cond = idle },
+                { "mode" },
             },
             lualine_b = {
-                { "branch", cond = idle },
-                { "diff", cond = idle },
+                { "branch" },
+                { "diff" },
                 {
                     'diagnostics',
                     sources = { "nvim_diagnostic" },
                     symbols = { error = ' ', warn = ' ', info = ' ', hint = ' ' },
-                    cond = idle,
                 }
             },
             lualine_c = {
                 {
-                    progress.fullwidth_component,
-                    cond = busy,
-                    color = { fg = "#111111", bg = "#98c379", gui = "bold" },
-                    padding = { left = 0, right = 0 },
-                    separator = { left = "", right = "" },
-                },
-                {
                     function()
                         return ticker_text_safe()
                     end,
+                    cond = show_ticker,
+                },
+                {
+                    progress.fullwidth_component,
                     cond = function()
-                        return idle() and ticker_has_current_safe()
+                        return busy() and not show_ticker()
                     end,
                 },
             },
             lualine_x = {
-                { "encoding", cond = idle },
+                { "encoding" },
             },
             lualine_y = {
-                { "searchcount", cond = idle },
+                { "searchcount" },
             },
             lualine_z = {
-                { "location", cond = idle },
+                { "location" },
             },
         },
         inactive_sections = {
@@ -136,6 +148,28 @@ local config = function()
             lualine_y = {},
             lualine_z = {},
         },
+        winbar = {
+            lualine_c = {
+                { "filename", path = 1, symbols = { modified = " ●", readonly = " 󰌾" } },
+                {
+                    function()
+                        local location = navic_location_safe()
+                        if location == "" then
+                            return ""
+                        end
+                        return "  " .. location
+                    end,
+                    cond = function()
+                        return navic_location_safe() ~= ""
+                    end,
+                },
+            },
+        },
+        inactive_winbar = {
+            lualine_c = {
+                { "filename", path = 1 },
+            },
+        },
         tabline = {},
         extensions = { "nvim-tree" },
     })
@@ -143,7 +177,10 @@ end
 
 return {
     "nvim-lualine/lualine.nvim",
-    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    dependencies = {
+        'nvim-tree/nvim-web-devicons',
+        "SmiteshP/nvim-navic",
+    },
     lazy = false,
     config = config,
 }

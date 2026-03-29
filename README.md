@@ -442,13 +442,6 @@ Language-aware - automatically uses correct comment syntax (`//`, `#`, `--`, `/*
 - Treesitter-powered - understands your code structure
 - Auto-detects parameters, return types, and more
 
-### 📝 Avante
-**What it does:** AI-powered code assistance (if configured)
-- AI chat interface
-- Code suggestions
-- Refactoring help
-- Modern AI integration
-
 ### 💻 FTerm
 **What it does:** Floating terminal
 - Quick terminal popup
@@ -571,13 +564,11 @@ Language-aware - automatically uses correct comment syntax (`//`, `#`, `--`, `/*
 - **`<F5>`** - Reload config + load API keys from vault 🚀🔑
 - **`<leader>R`** - Same as F5
 - **`<leader>so`** - Reload config only (skip env vars)
-- **`<leader>ar`** - Restart Neovim (for Avante AI to pick up new API keys)
 
 **Workflow:**
 1. Add API key to Vault → It auto-loads to `~/.vault_keys_cache`
 2. Press `<F5>` in Neovim → Loads keys into environment
-3. Press `<leader>ar` → Saves & restarts Neovim (for Avante)
-4. Avante now has the API key! ✅
+3. Restart Neovim if a plugin reads tokens only at startup
 
 ### First Launch
 

@@ -140,7 +140,6 @@ local function should_skip_map_exec(map)
     or desc:find("preview", 1, true)
       or desc:find("history", 1, true)
       or desc:find("markdown", 1, true)
-      or desc:find("avante", 1, true)
       or desc:find("aerial", 1, true)
       or desc:find("tree", 1, true)
       or desc:find("run", 1, true)
@@ -166,7 +165,6 @@ local function should_skip_map_exec(map)
       or c:find("^toggleterm", 1, true)
       or c:find("^aerial", 1, true)
       or c:find("^run", 1, true)
-      or c:find("^avante", 1, true)
     then
       return true, "interactive/destructive command"
     end
@@ -318,9 +316,6 @@ if should_run("plugins") then
     "copilot.lua",
     "copilot-cmp",
     "copilot-lualine",
-    "avante.nvim",
-    "img-clip.nvim",
-    "render-markdown.nvim",
     "blink.cmp",
 
     -- Misc

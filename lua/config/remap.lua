@@ -368,8 +368,49 @@ vim.api.nvim_create_autocmd({ "BufEnter", "LspAttach", "FileType" }, {
   end,
 })
 
--- Toggle diagnostics for the current buffer (works for any filetype/source).
+local function ensure_gitsigns_loaded()
+  local ok_gitsigns = pcall(require, "gitsigns")
+  if ok_gitsigns then
+    return true
+  end
+  local ok_lazy, lazy = pcall(require, "lazy")
+  if ok_lazy and type(lazy.load) == "function" then
+    pcall(lazy.load, { plugins = { "lewis6991/gitsigns.nvim", "gitsigns.nvim" } })
+    return pcall(require, "gitsigns")
+  end
+  return false
+end
+
+-- Unified git diff popup for the current file.
 vim.keymap.set('n', '<leader>dt', function()
+  if not ensure_gitsigns_loaded() then
+    vim.notify("gitsigns is unavailable", vim.log.levels.WARN)
+    return
+  end
+  local ok_popup, git_popup = pcall(require, "util.git_popup")
+  if not ok_popup or type(git_popup.show_unified_diff_popup) ~= "function" then
+    vim.notify("Git diff popup is unavailable", vim.log.levels.WARN)
+    return
+  end
+  git_popup.show_unified_diff_popup({ bufnr = vim.api.nvim_get_current_buf() })
+end, { noremap = true, silent = true, desc = "Git diff popup (unified)" })
+
+-- Full-buffer git blame view for the current file.
+vim.keymap.set('n', '<leader>gb', function()
+  if not ensure_gitsigns_loaded() then
+    vim.notify("gitsigns is unavailable", vim.log.levels.WARN)
+    return
+  end
+  local ok, gs = pcall(require, "gitsigns")
+  if ok and type(gs.blame) == "function" then
+    gs.blame()
+    return
+  end
+  vim.notify("Git blame is unavailable", vim.log.levels.WARN)
+end, { noremap = true, silent = true, desc = "Git blame buffer" })
+
+-- Toggle diagnostics for the current buffer (works for any filetype/source).
+vim.keymap.set('n', '<leader>db', function()
   local bufnr = vim.api.nvim_get_current_buf()
   local ok, enabled = pcall(vim.diagnostic.is_enabled, { bufnr = bufnr })
   if not ok then
@@ -579,6 +620,8 @@ local function reload_loaded_plugins_silent()
   end
 end
 
+local env_guard = require("config.env")
+
 _G.reload_all = function()
   vim.notify("🔄 Reloading environment + config...", vim.log.levels.INFO)
   
@@ -588,30 +631,44 @@ _G.reload_all = function()
   
   if file then
     local loaded_keys = 0
+    local blocked_keys = 0
     for line in file:lines() do
       -- Parse KEY="value" format
       local key, value = line:match('^([%w_]+)="(.*)"$')
       if key and value and value ~= "" then
-        -- Load the key as-is first
-        vim.env[key] = value
-        loaded_keys = loaded_keys + 1
-        
-        -- Also create _API_KEY versions for compatibility
-        if key == "GEMINI_KEY" then
-          vim.env.GEMINI_API_KEY = value
-        elseif key == "OPENAI_KEY" then
-          vim.env.OPENAI_API_KEY = value
-        elseif key == "ANTHROPIC_KEY" then
-          vim.env.ANTHROPIC_API_KEY = value
-        elseif key == "AIHUBMIX_KEY" then
-          vim.env.AIHUBMIX_API_KEY = value
+        if env_guard.blocked_env_keys[key] then
+          blocked_keys = blocked_keys + 1
+        else
+          -- Load the key as-is first
+          vim.env[key] = value
+          loaded_keys = loaded_keys + 1
+
+          -- Also create _API_KEY versions for compatibility
+          if key == "GEMINI_KEY" then
+            vim.env.GEMINI_API_KEY = value
+          elseif key == "OPENAI_KEY" then
+            vim.env.OPENAI_API_KEY = value
+          elseif key == "ANTHROPIC_KEY" then
+            vim.env.ANTHROPIC_API_KEY = value
+          elseif key == "AIHUBMIX_KEY" then
+            vim.env.AIHUBMIX_API_KEY = value
+          end
         end
       end
     end
     file:close()
+
+    -- Keep Neovim token-free for GitHub auth variables, even after reload.
+    env_guard.clear_blocked_env_keys()
     
     if loaded_keys > 0 then
-      vim.notify(string.format("🔑 Loaded %d API keys", loaded_keys), vim.log.levels.INFO, { timeout = 1000 })
+      vim.notify(
+        string.format("🔑 Loaded %d API keys (blocked %d GitHub token vars)", loaded_keys, blocked_keys),
+        vim.log.levels.INFO,
+        { timeout = 1200 }
+      )
+    elseif blocked_keys > 0 then
+      vim.notify("🔒 GitHub token vars were blocked in Neovim", vim.log.levels.INFO, { timeout = 1200 })
     else
       vim.notify("⚠️ No keys found in vault cache", vim.log.levels.WARN)
     end
@@ -636,6 +693,7 @@ _G.reload_all = function()
   -- 4. Reload already-loaded plugins without lazy's noisy command wrapper.
   reload_loaded_plugins_silent()
 
+  env_guard.clear_blocked_env_keys()
   vim.defer_fn(restore_ui_state_after_reload, 120)
   
   vim.notify("✨ Everything reloaded!", vim.log.levels.INFO, { timeout = 1500 })
@@ -656,6 +714,7 @@ _G.reload_config = function()
 
   reload_loaded_plugins_silent()
 
+  env_guard.clear_blocked_env_keys()
   vim.defer_fn(restore_ui_state_after_reload, 120)
 
   vim.notify("✨ Config reloaded!", vim.log.levels.INFO, { timeout = 1500 })
@@ -675,24 +734,34 @@ vim.keymap.set('n', '<leader>sk', function()
     "AIHUBMIX_API_KEY",
     "GROQ_API_KEY",
     "GITHUB_TOKEN",
+    "GH_TOKEN",
     "HEROKU_KEY",
   }
   
   local loaded = {}
   local missing = {}
+  local blocked = {}
   
   for _, key in ipairs(keys_to_check) do
-    local value = vim.env[key]
-    if value and value ~= "" then
-      table.insert(loaded, key .. ": " .. value:sub(1, 15) .. "...")
+    if env_guard.blocked_env_keys[key] then
+      table.insert(blocked, key)
     else
-      table.insert(missing, key)
+      local value = vim.env[key]
+      if value and value ~= "" then
+        table.insert(loaded, key .. ": " .. value:sub(1, 15) .. "...")
+      else
+        table.insert(missing, key)
+      end
     end
   end
   
   local message = ""
   if #loaded > 0 then
     message = message .. "✅ Loaded (" .. #loaded .. "):\n" .. table.concat(loaded, "\n")
+  end
+  if #blocked > 0 then
+    if message ~= "" then message = message .. "\n\n" end
+    message = message .. "🔒 Blocked in Neovim:\n" .. table.concat(blocked, ", ")
   end
   if #missing > 0 then
     if message ~= "" then message = message .. "\n\n" end
@@ -701,37 +770,6 @@ vim.keymap.set('n', '<leader>sk', function()
   
   vim.notify(message, #loaded > 0 and vim.log.levels.INFO or vim.log.levels.WARN, { timeout = 5000 })
 end, { noremap = true, silent = true, desc = "Check all API keys" })
-
--- Reload Avante (to pick up new API keys)
-vim.keymap.set('n', '<leader>ar', function()
-  vim.notify("🔄 Reloading Avante...", vim.log.levels.INFO)
-  
-  -- Close any open Avante windows
-  vim.cmd('silent! AvanteToggle')
-  
-  -- Clear all Avante modules from cache
-  for key, _ in pairs(package.loaded) do
-    if key:match("^avante") then
-      package.loaded[key] = nil
-    end
-  end
-  
-  -- Reload Avante through lazy.nvim
-  vim.defer_fn(function()
-    local lazy_ok, lazy = pcall(require, "lazy")
-    if lazy_ok then
-      lazy.reload({ plugins = { "avante.nvim" } })
-      vim.notify("✅ Avante reloaded! New API key active.", vim.log.levels.INFO, { timeout = 2000 })
-    else
-      -- Fallback: just reload the module
-      local avante_config = require("plugins.avante")
-      if avante_config and type(avante_config) == "table" and avante_config.config then
-        avante_config.config()
-      end
-      vim.notify("✅ Avante reloaded!", vim.log.levels.INFO)
-    end
-  end, 100)
-end, { noremap = true, silent = true, desc = "Reload Avante" })
 
 -- Close any floating window (useful for diagnostic popups that stay open)
 vim.keymap.set('n', '<leader>dc', function()

@@ -1,4 +1,88 @@
 -- which-key: displays a popup with possible key bindings
+local function center_telescope_in_window(anchor_win)
+  if not anchor_win or not vim.api.nvim_win_is_valid(anchor_win) then
+    return false
+  end
+
+  local float_wins = {}
+  local min_row, min_col, max_row, max_col
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    local ft = vim.bo[buf].filetype
+    if ft == "TelescopePrompt" or ft == "TelescopeResults" or ft == "TelescopePreview" then
+      local cfg = vim.api.nvim_win_get_config(win)
+      if cfg and cfg.relative ~= "" then
+        local row = tonumber(cfg.row) or 0
+        local col = tonumber(cfg.col) or 0
+        local width = tonumber(cfg.width) or 1
+        local height = tonumber(cfg.height) or 1
+
+        min_row = min_row and math.min(min_row, row) or row
+        min_col = min_col and math.min(min_col, col) or col
+        max_row = max_row and math.max(max_row, row + height + 2) or (row + height + 2)
+        max_col = max_col and math.max(max_col, col + width + 2) or (col + width + 2)
+        float_wins[#float_wins + 1] = { win = win, cfg = cfg, row = row, col = col }
+      end
+    end
+  end
+
+  if #float_wins == 0 or min_row == nil or min_col == nil or max_row == nil or max_col == nil then
+    return false
+  end
+
+  local anchor_w = vim.api.nvim_win_get_width(anchor_win)
+  local anchor_h = vim.api.nvim_win_get_height(anchor_win)
+  local box_w = math.max(1, math.floor(max_col - min_col))
+  local box_h = math.max(1, math.floor(max_row - min_row))
+  local target_row = math.max(0, math.floor((anchor_h - box_h) / 2))
+  local target_col = math.max(0, math.floor((anchor_w - box_w) / 2))
+  local delta_row = target_row - min_row
+  local delta_col = target_col - min_col
+
+  for _, item in ipairs(float_wins) do
+    local cfg = item.cfg
+    cfg.relative = "win"
+    cfg.win = anchor_win
+    cfg.row = math.max(0, item.row + delta_row)
+    cfg.col = math.max(0, item.col + delta_col)
+    pcall(vim.api.nvim_win_set_config, item.win, cfg)
+  end
+
+  return true
+end
+
+local function open_keymaps_picker(opts)
+  opts = opts or {}
+  local anchor_win = vim.api.nvim_get_current_win()
+  local theme = require("telescope.themes").get_dropdown({
+    prompt_title = opts.prompt_title or "Keymaps (search by key, desc, plugin)",
+    default_text = opts.default_text,
+    previewer = false,
+    layout_strategy = "center",
+    layout_config = {
+      width = 0.9,
+      height = 0.72,
+    },
+  })
+
+  require("telescope.builtin").keymaps(vim.tbl_extend("force", theme, {
+    show_plug = false,
+  }))
+
+  local retries = 20
+  local function recenter()
+    if center_telescope_in_window(anchor_win) then
+      return
+    end
+    retries = retries - 1
+    if retries <= 0 then
+      return
+    end
+    vim.defer_fn(recenter, 25)
+  end
+  vim.defer_fn(recenter, 10)
+end
+
 return {
   "folke/which-key.nvim",
   lazy = false,
@@ -6,29 +90,17 @@ return {
     {
       "<leader><leader>",
       function()
-        local theme = require("telescope.themes").get_cursor({
-          prompt_title = "Keymaps (search by key, desc, plugin)",
-          layout_config = { width = 0.9, height = 0.7 },
-          previewer = false,
-        })
-        require("telescope.builtin").keymaps(vim.tbl_extend("force", theme, {
-          show_plug = false,
-        }))
+        open_keymaps_picker()
       end,
       desc = "Search Keymaps (desc + tags)",
     },
     {
       "<leader>fC",
       function()
-        local theme = require("telescope.themes").get_cursor({
+        open_keymaps_picker({
           prompt_title = "Clojure Tooling Keymaps",
           default_text = "conjure",
-          layout_config = { width = 0.9, height = 0.7 },
-          previewer = false,
         })
-        require("telescope.builtin").keymaps(vim.tbl_extend("force", theme, {
-          show_plug = false,
-        }))
       end,
       desc = "Search Clojure keymaps (Conjure/Aerial)",
     },
@@ -103,7 +175,6 @@ return {
     -- Register key groups and mappings (v3 API) - ALPHABETICALLY SORTED!
     wk.add({
       -- Leader key groups (a-z order) - ONLY GROUPS at root level for clean menu
-      { "<leader>a", group = "avante/ai" },
       { "<leader>b", group = "buffer" },
       { "<leader>c", group = "code/docs" },
       { "<leader>d", group = "diagnostics" },
@@ -112,6 +183,7 @@ return {
       { "<leader>g", group = "git/goto" },
       { "<leader>h", group = "harpoon" },
       { "<leader>i", group = "inline/refactor" },
+      { "<leader>k", group = "sidekick" },
       { "<leader>m", group = "markdown" },
       { "<leader>n", group = "navigation" },
       { "<leader>o", group = "aerial/outline" },
@@ -190,8 +262,9 @@ return {
       { "<leader>bp", desc = "Pick buffer" },
       
       -- UI toggles (alphabetically sorted)
+      { "<leader>uD", desc = "Toggle Drop effect" },
       { "<leader>uc", desc = "Force green cursor" },
-      { "<leader>uh", desc = "Message history (copyable split)" },
+      { "<leader>uh", desc = "Message history (popup)" },
       { "<leader>uH", desc = "Last message (details)" },
       { "<leader>uL", desc = "Rebuild LuaSnip (fix jsregexp)" },
       { "<leader>un", desc = "Dismiss notifications" },
@@ -220,7 +293,7 @@ return {
       { "<leader>xl", desc = "Location list" },
       
       -- Git (gitsigns) - using <leader>g prefix
-      { "<leader>gb", desc = "Git blame line" },
+      { "<leader>gb", desc = "Git blame buffer" },
       { "<leader>gp", desc = "Git preview hunk" },
       { "<leader>gr", desc = "Git reset hunk", mode = { "n", "v" } },
       { "<leader>gra", desc = "Git reset all (buffer)" },
@@ -257,7 +330,8 @@ return {
       { "<leader>d", group = "diagnostics/delete" },
       { "<leader>do", desc = "Cursor diagnostic (click to copy!)" },
       { "<leader>dO", desc = "Line diagnostic (click to copy!)" },
-      { "<leader>dt", desc = "Toggle diagnostics (buffer)" },
+      { "<leader>dt", desc = "Git diff popup (unified)" },
+      { "<leader>db", desc = "Toggle diagnostics (buffer)" },
       { "<leader>dT", desc = "Toggle diagnostics (global)" },
       { "<leader>dk", desc = "Toggle diagnostics (Clojure)" },
       { "<leader>dK", desc = "Reset Clojure caches" },
@@ -361,15 +435,18 @@ return {
       { "[w", desc = "Previous warning" },
       { "]w", desc = "Next warning" },
       
-      -- Avante AI (alphabetically sorted)
-      { "<leader>a?", desc = "Select model" },
-      { "<leader>aa", desc = "Avante ask" },
-      { "<leader>ac", desc = "Add current to context" },
-      { "<leader>ae", desc = "Avante edit" },
-      { "<leader>af", desc = "Avante focus" },
-      { "<leader>ah", desc = "Select history" },
-      { "<leader>ar", desc = "Reload Avante" },
-      { "<leader>at", desc = "Avante toggle" },
+      -- Sidekick AI CLI / NES
+      { "<leader>kd", desc = "Sidekick detach session" },
+      { "<leader>ke", desc = "Sidekick toggle NES" },
+      { "<leader>kf", desc = "Sidekick float popup" },
+      { "<leader>kF", desc = "Sidekick focus split panel" },
+      { "<leader>kk", desc = "Sidekick toggle CLI" },
+      { "<leader>kn", desc = "Sidekick next/apply edit" },
+      { "<leader>kp", desc = "Sidekick prompt", mode = { "n", "x" } },
+      { "<leader>ks", desc = "Sidekick select tool" },
+      { "<leader>kt", desc = "Sidekick send this", mode = { "n", "x" } },
+      { "<leader>ku", desc = "Sidekick update edits" },
+      { "<leader>kv", desc = "Sidekick send selection", mode = { "x" } },
 
       -- Conjure (Clojure REPL) - uses <localleader> (backslash \)
       -- Note: These are buffer-local, only active in .clj files
@@ -398,6 +475,7 @@ return {
       { "<leader><leader>", desc = "Search ALL keymaps 🔍" },
       { "<leader>?", desc = "Show buffer keymaps" },
       { "<leader>;", desc = "Alpha dashboard (new tab) 🏠" },
+      { "<C-.>", desc = "Sidekick focus" },
       { "<C-f>", desc = "Telescope live grep" },
       { "<A-f>", desc = "Telescope search (current file)" },
       { "<C-\\>", desc = "Toggle terminal" },

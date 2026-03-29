@@ -1,4 +1,5 @@
 require("config.suppress_warnings")  -- Must be first to catch all warnings
+require("config.env")  -- Clear blocked env vars before plugins initialize
 require("config.statusline_guard")
 require("config.remap")
 require("config.set")

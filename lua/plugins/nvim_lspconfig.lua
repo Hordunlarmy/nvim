@@ -4,9 +4,51 @@ local typescript_organise_imports = require("util.lsp").typescript_organise_impo
 
 local config = function()
 	local cmp_nvim_lsp = require("cmp_nvim_lsp")
-	
-	local lspconfig = require("lspconfig")
+
+	local lspconfig_util = require("lspconfig.util")
 	local capabilities = cmp_nvim_lsp.default_capabilities()
+	local has_native_lsp_config = vim.fn.has("nvim-0.11") == 1
+		and vim.lsp
+		and vim.lsp.config ~= nil
+		and type(vim.lsp.enable) == "function"
+	local lspconfig = nil
+	if not has_native_lsp_config then
+		lspconfig = require("lspconfig")
+	end
+
+	local function resolve_path(value)
+		if type(value) == "number" then
+			local name = vim.api.nvim_buf_get_name(value)
+			if name ~= "" then
+				return name
+			end
+			return vim.loop.cwd()
+		end
+		if type(value) == "string" and value ~= "" then
+			return value
+		end
+		return vim.loop.cwd()
+	end
+
+	local function root_pattern(...)
+		local matcher = lspconfig_util.root_pattern(...)
+		return function(value)
+			return matcher(resolve_path(value))
+		end
+	end
+
+	local function compat_root_dir(resolve_dir)
+		return function(value, on_dir)
+			local dir = resolve_dir(value)
+			if type(on_dir) == "function" then
+				if dir and dir ~= "" then
+					on_dir(dir)
+				end
+				return
+			end
+			return dir
+		end
+	end
 
 	------- Configure diagnostics --------
 	vim.diagnostic.config({
@@ -32,7 +74,19 @@ local config = function()
 	})
 
 	local function setup_server(server_name, server_config)
-		local ok, server = pcall(function() return lspconfig[server_name] end)
+		if has_native_lsp_config then
+			local ok = pcall(function()
+				vim.lsp.config(server_name, server_config)
+			end)
+			if ok then
+				vim.lsp.enable(server_name)
+			end
+			return
+		end
+
+		local ok, server = pcall(function()
+			return lspconfig[server_name]
+		end)
 		if ok and server and type(server.setup) == "function" then
 			server.setup(server_config)
 		end
@@ -69,10 +123,11 @@ local config = function()
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "sql", "mysql", "plsql" },
-		root_dir = function(fname)
-			return lspconfig.util.root_pattern(".sqls.yml", ".git")(fname)
-				or lspconfig.util.path.dirname(fname)
-		end,
+		root_dir = compat_root_dir(function(fname)
+			local path = resolve_path(fname)
+			return root_pattern(".sqls.yml", ".git")(path)
+				or lspconfig_util.path.dirname(path)
+		end),
 		single_file_support = true,
 	})
 
@@ -109,7 +164,7 @@ local config = function()
 				indentSize = 2,
 			},
 		},
-		root_dir = lspconfig.util.root_pattern("package.json", "tsconfig.json", ".git"),
+		root_dir = compat_root_dir(root_pattern("package.json", "tsconfig.json", ".git")),
 	})
 
 	-- bash
@@ -141,7 +196,7 @@ local config = function()
 		on_attach = on_attach,
 		cmd = { "gopls" },
 		filetypes = { "go", "gomod", "gowork", "gotmpl" },
-		root_dir = lspconfig.util.root_pattern("go.work", "go.mod", ".git"),
+		root_dir = compat_root_dir(root_pattern("go.work", "go.mod", ".git")),
 		settings = {
 			gopls = {
 				usePlaceholders = true,
@@ -160,33 +215,26 @@ local config = function()
 	})
 
 	-- clojure
-	local clojure_root = lspconfig.util.root_pattern("project.clj", "deps.edn", "build.boot", "shadow-cljs.edn", "bb.edn")
-	local clojure_lsp_cache = vim.fn.stdpath("cache") .. "/clojure-lsp"
+	local clojure_root = root_pattern("deps.edn", "project.clj", "build.boot", "shadow-cljs.edn", "bb.edn")
 	local clj_kondo_cache = vim.fn.stdpath("cache") .. "/clj-kondo"
-	vim.fn.mkdir(clojure_lsp_cache, "p")
 	vim.fn.mkdir(clj_kondo_cache, "p")
 	setup_server("clojure_lsp", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "clojure", "edn" },
+		cmd = { "clojure-lsp" },
 		cmd_env = {
 			CLJ_KONDO_CACHE = clj_kondo_cache,
 		},
-		init_options = {
-			["cache-path"] = clojure_lsp_cache,
-			["lint-project-files-after-startup?"] = false,
-			["paths-ignore-regex"] = {
-				".*/target/.*",
-				".*/node_modules/.*",
-				".*/.shadow-cljs/.*",
-			},
-		},
-		root_dir = function(fname)
-			return clojure_root(fname)
-		end,
+		root_dir = compat_root_dir(function(fname)
+			local path = resolve_path(fname)
+			if path:match("conjure%-log%-") then
+				return nil
+			end
+			return clojure_root(path)
+		end),
 		single_file_support = false,
-		-- Let clojure-lsp discover classpath from project tooling; custom init_options
-		-- here can cause classpath lookup failures in Lein profile-based projects.
+		-- Let clojure-lsp discover classpath from project tooling defaults.
 	})
 
 	-- efm setup (only if efm-langserver is installed)
