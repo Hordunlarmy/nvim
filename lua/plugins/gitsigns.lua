@@ -50,7 +50,6 @@ return {
         map('n', '<leader>gB', function() gs.blame_line { full = true } end, { desc = "Git blame line (popup)" })
         map('n', '<leader>gt', function() git_popup.show_unified_diff_popup({ bufnr = bufnr }) end, { desc = "Git diff this (popup)" })
         map('n', '<leader>gT', function() git_popup.show_unified_diff_popup({ bufnr = bufnr, rev = "~" }) end, { desc = "Git diff this ~ (popup)" })
-        map('n', '<leader>dt', function() git_popup.show_unified_diff_popup({ bufnr = bufnr }) end, { desc = "Git diff popup (unified)" })
         
         -- Toggle
         map('n', '<leader>tb', gs.toggle_current_line_blame, { desc = "Toggle git blame" })

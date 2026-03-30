@@ -381,20 +381,6 @@ local function ensure_gitsigns_loaded()
   return false
 end
 
--- Unified git diff popup for the current file.
-vim.keymap.set('n', '<leader>dt', function()
-  if not ensure_gitsigns_loaded() then
-    vim.notify("gitsigns is unavailable", vim.log.levels.WARN)
-    return
-  end
-  local ok_popup, git_popup = pcall(require, "util.git_popup")
-  if not ok_popup or type(git_popup.show_unified_diff_popup) ~= "function" then
-    vim.notify("Git diff popup is unavailable", vim.log.levels.WARN)
-    return
-  end
-  git_popup.show_unified_diff_popup({ bufnr = vim.api.nvim_get_current_buf() })
-end, { noremap = true, silent = true, desc = "Git diff popup (unified)" })
-
 -- Full-buffer git blame view for the current file.
 vim.keymap.set('n', '<leader>gb', function()
   if not ensure_gitsigns_loaded() then
@@ -410,7 +396,7 @@ vim.keymap.set('n', '<leader>gb', function()
 end, { noremap = true, silent = true, desc = "Git blame buffer" })
 
 -- Toggle diagnostics for the current buffer (works for any filetype/source).
-vim.keymap.set('n', '<leader>db', function()
+vim.keymap.set('n', '<leader>dt', function()
   local bufnr = vim.api.nvim_get_current_buf()
   local ok, enabled = pcall(vim.diagnostic.is_enabled, { bufnr = bufnr })
   if not ok then

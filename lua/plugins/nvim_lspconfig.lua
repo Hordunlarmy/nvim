@@ -215,9 +215,19 @@ local config = function()
 	})
 
 	-- clojure
-	local clojure_root = root_pattern("deps.edn", "project.clj", "build.boot", "shadow-cljs.edn", "bb.edn")
+	local clojure_root = root_pattern("project.clj", "deps.edn", "build.boot", "build.clj", "shadow-cljs.edn", "bb.edn", ".git")
 	local clj_kondo_cache = vim.fn.stdpath("cache") .. "/clj-kondo"
+	local clojure_lsp_cache_root = vim.fn.stdpath("cache") .. "/clojure-lsp/projects"
 	vim.fn.mkdir(clj_kondo_cache, "p")
+	vim.fn.mkdir(clojure_lsp_cache_root, "p")
+
+	local function clojure_project_cache_dir(root_dir)
+		local key = vim.fn.sha256(root_dir):sub(1, 16)
+		local cache_dir = clojure_lsp_cache_root .. "/" .. key
+		vim.fn.mkdir(cache_dir, "p")
+		return cache_dir
+	end
+
 	setup_server("clojure_lsp", {
 		capabilities = capabilities,
 		on_attach = on_attach,
@@ -232,8 +242,23 @@ local config = function()
 				return nil
 			end
 			return clojure_root(path)
+				or lspconfig_util.find_git_ancestor(path)
+				or lspconfig_util.path.dirname(path)
 		end),
-		single_file_support = false,
+		on_new_config = function(new_config, new_root_dir)
+			if not new_root_dir or new_root_dir == "" then
+				return
+			end
+
+			local project_cache = clojure_project_cache_dir(new_root_dir)
+			local settings_edn = string.format('{:cache-path "%s"}', project_cache)
+			new_config.cmd = { "clojure-lsp", "--project-root", new_root_dir, "--settings", settings_edn }
+
+			local env = vim.tbl_extend("force", {}, new_config.cmd_env or {})
+			env.CLJ_KONDO_CACHE = clj_kondo_cache
+			new_config.cmd_env = env
+		end,
+		single_file_support = true,
 		-- Let clojure-lsp discover classpath from project tooling defaults.
 	})
 
