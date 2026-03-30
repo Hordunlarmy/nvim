@@ -1,86 +1,26 @@
 -- which-key: displays a popup with possible key bindings
-local function center_telescope_in_window(anchor_win)
-  if not anchor_win or not vim.api.nvim_win_is_valid(anchor_win) then
-    return false
-  end
-
-  local float_wins = {}
-  local min_row, min_col, max_row, max_col
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local buf = vim.api.nvim_win_get_buf(win)
-    local ft = vim.bo[buf].filetype
-    if ft == "TelescopePrompt" or ft == "TelescopeResults" or ft == "TelescopePreview" then
-      local cfg = vim.api.nvim_win_get_config(win)
-      if cfg and cfg.relative ~= "" then
-        local row = tonumber(cfg.row) or 0
-        local col = tonumber(cfg.col) or 0
-        local width = tonumber(cfg.width) or 1
-        local height = tonumber(cfg.height) or 1
-
-        min_row = min_row and math.min(min_row, row) or row
-        min_col = min_col and math.min(min_col, col) or col
-        max_row = max_row and math.max(max_row, row + height + 2) or (row + height + 2)
-        max_col = max_col and math.max(max_col, col + width + 2) or (col + width + 2)
-        float_wins[#float_wins + 1] = { win = win, cfg = cfg, row = row, col = col }
-      end
-    end
-  end
-
-  if #float_wins == 0 or min_row == nil or min_col == nil or max_row == nil or max_col == nil then
-    return false
-  end
-
-  local anchor_w = vim.api.nvim_win_get_width(anchor_win)
-  local anchor_h = vim.api.nvim_win_get_height(anchor_win)
-  local box_w = math.max(1, math.floor(max_col - min_col))
-  local box_h = math.max(1, math.floor(max_row - min_row))
-  local target_row = math.max(0, math.floor((anchor_h - box_h) / 2))
-  local target_col = math.max(0, math.floor((anchor_w - box_w) / 2))
-  local delta_row = target_row - min_row
-  local delta_col = target_col - min_col
-
-  for _, item in ipairs(float_wins) do
-    local cfg = item.cfg
-    cfg.relative = "win"
-    cfg.win = anchor_win
-    cfg.row = math.max(0, item.row + delta_row)
-    cfg.col = math.max(0, item.col + delta_col)
-    pcall(vim.api.nvim_win_set_config, item.win, cfg)
-  end
-
-  return true
-end
+local telescope_float = require("config.telescope_float")
 
 local function open_keymaps_picker(opts)
   opts = opts or {}
   local anchor_win = vim.api.nvim_get_current_win()
+  local anchor_w = vim.api.nvim_win_get_width(anchor_win)
+  local anchor_h = vim.api.nvim_win_get_height(anchor_win)
   local theme = require("telescope.themes").get_dropdown({
     prompt_title = opts.prompt_title or "Keymaps (search by key, desc, plugin)",
     default_text = opts.default_text,
     previewer = false,
     layout_strategy = "center",
     layout_config = {
-      width = 0.9,
-      height = 0.72,
+      width = math.max(40, math.floor(anchor_w * 0.9)),
+      height = math.max(10, math.floor(anchor_h * 0.72)),
     },
   })
 
   require("telescope.builtin").keymaps(vim.tbl_extend("force", theme, {
     show_plug = false,
   }))
-
-  local retries = 20
-  local function recenter()
-    if center_telescope_in_window(anchor_win) then
-      return
-    end
-    retries = retries - 1
-    if retries <= 0 then
-      return
-    end
-    vim.defer_fn(recenter, 25)
-  end
-  vim.defer_fn(recenter, 10)
+  telescope_float.defer_retarget(anchor_win)
 end
 
 return {
@@ -470,6 +410,8 @@ return {
       { "<localleader>v", group = "conjure view" },
       { "<localleader>vs", desc = "Conjure/Compojure: view source" },
       { "<localleader>vd", desc = "Conjure/Compojure: view doc" },
+      { "<localleader>rr", desc = "Conjure: reload all modified (refresh)" },
+      { "<F2>", desc = "Conjure: clear log (quick shortcut)", mode = { "n", "i" } },
       
       -- Special keys
       { "<leader><leader>", desc = "Search ALL keymaps 🔍" },

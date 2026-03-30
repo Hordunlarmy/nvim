@@ -311,6 +311,38 @@ return {
       end
     end
 
+    local function clear_conjure_log()
+      local ok, log = pcall(require, "conjure.log")
+      if ok and log then
+        if type(log["reset-soft"]) == "function" then
+          log["reset-soft"]()
+          return
+        end
+        if type(log["reset-hard"]) == "function" then
+          log["reset-hard"]()
+          return
+        end
+      end
+      pcall(vim.cmd, "ConjureLogResetSoft")
+    end
+
+    local function eval_buffer_on_insert_leave(bufnr)
+      if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+      end
+      local ft = vim.bo[bufnr].filetype
+      if ft ~= "clojure" and ft ~= "edn" then
+        return
+      end
+      ensure_repl_connected()
+      local ok, eval = pcall(require, "conjure.eval")
+      if ok and eval and type(eval.buf) == "function" then
+        pcall(eval.buf)
+        return
+      end
+      pcall(vim.cmd, "ConjureEvalBuf")
+    end
+
     local function attach_log_keymaps(bufnr)
       if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
         return
@@ -341,6 +373,19 @@ return {
         vim.keymap.set("n", "<localleader>lq", close_log_and_restore, vim.tbl_extend("force", opts, {
           desc = "Conjure/Compojure: close log and restore Aerial",
         }))
+        vim.keymap.set("n", "<localleader>rr", function()
+          local ok, eval = pcall(require, "conjure.eval")
+          if ok then
+            eval.command("(clojure.tools.namespace.repl/refresh)")
+          end
+        end, vim.tbl_extend("force", opts, {
+          desc = "Conjure: reload all modified namespaces (tools.namespace)",
+        }))
+        vim.keymap.set({"n", "i"}, "<F2>", function()
+          clear_conjure_log()
+        end, vim.tbl_extend("force", opts, {
+          desc = "Conjure: clear log (F2 shortcut)",
+        }))
         set_sc_map(bufnr)
         -- Re-apply shortly after, so our map wins even if Conjure sets defaults later.
         vim.defer_fn(function()
@@ -357,6 +402,15 @@ return {
       callback = function(args)
         prune_stale_port_files()
         attach_log_keymaps(args.buf)
+        
+        -- Auto-eval on InsertLeave (with small delay to ensure buffer is consistent)
+        vim.api.nvim_create_autocmd("InsertLeave", {
+          group = group,
+          buffer = args.buf,
+          callback = function()
+            eval_buffer_on_insert_leave(args.buf)
+          end,
+        })
       end,
     })
 
@@ -376,6 +430,7 @@ return {
         vim.t.conjure_log_visible = true
         vim.keymap.set("n", "q", close_log_and_restore, { buffer = args.buf, silent = true, desc = "Close log + restore Aerial" })
         vim.keymap.set("n", "<Esc>", close_log_and_restore, { buffer = args.buf, silent = true, desc = "Close log + restore Aerial" })
+        vim.keymap.set({ "n", "i" }, "<F2>", clear_conjure_log, { buffer = args.buf, silent = true, desc = "Conjure: clear log (F2)" })
       end,
     })
 

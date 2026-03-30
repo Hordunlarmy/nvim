@@ -42,12 +42,12 @@ return {
 
       local buftype = vim.bo[bufnr].buftype
       local filetype = vim.bo[bufnr].filetype
-      if buftype ~= "" or filetype == "" or excluded_filetypes[filetype] then
+      if buftype ~= "" or excluded_filetypes[filetype] then
         return false
       end
 
       local name = vim.api.nvim_buf_get_name(bufnr)
-      if name == "" or name:match("^term://") or name:match("conjure%-log%-") then
+      if name:match("^term://") or name:match("conjure%-log%-") then
         return false
       end
 
@@ -56,9 +56,11 @@ return {
         return false
       end
 
-      local file_size = vim.fn.getfsize(name)
-      if file_size > 0 and file_size > 512000 then
-        return false
+      if name ~= "" then
+        local file_size = vim.fn.getfsize(name)
+        if file_size > 0 and file_size > 512000 then
+          return false
+        end
       end
 
       return true
@@ -95,7 +97,7 @@ return {
       preserve_equality = false,
     },
     attach_mode = "window",
-    close_automatic_events = { "unsupported", "switch_buffer" },
+    close_automatic_events = { "unsupported" },
     keymaps = {
       ["?"] = "actions.show_help",
       ["g?"] = "actions.show_help",
@@ -277,7 +279,7 @@ return {
       end,
     })
 
-    vim.api.nvim_create_autocmd({ "BufEnter", "LspAttach" }, {
+    vim.api.nvim_create_autocmd({ "BufEnter", "BufNewFile", "LspAttach" }, {
       group = vim.api.nvim_create_augroup("AerialAutoOpenSinglePane", { clear = true }),
       callback = function(args)
         local bufnr = args.buf

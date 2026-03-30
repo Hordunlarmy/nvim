@@ -1,5 +1,16 @@
 local config = function()
-	require("nvim-treesitter.configs").setup({
+	local ok, ts_configs = pcall(require, "nvim-treesitter.configs")
+	if not ok then
+		-- Fallback for newer Treesitter or failing master branch
+		local ok_ts, ts = pcall(require, "nvim-treesitter")
+		if ok_ts then
+			ts_configs = ts
+		else
+			return
+		end
+	end
+
+	ts_configs.setup({
 		build = ":TSUpdate",
 		indent = {
 			enable = true,
@@ -12,7 +23,6 @@ local config = function()
 			"BufNewFile",
 		},
 		ensure_installed = {
-			"vim",
 			"regex",
 			"rust",
 			"go",
@@ -46,6 +56,7 @@ local config = function()
 		highlight = {
 			enable = true,
 			additional_vim_regex_highlighting = true,
+			disable = { "clojure" }, -- Disable clojure highlight to fix query errors
 		},
 		incremental_selection = {
 			enable = true,
@@ -61,6 +72,8 @@ end
 
 return {
 	"nvim-treesitter/nvim-treesitter",
+	branch = "master",
+	build = ":TSUpdate",
 	lazy = false,
 	config = config,
 }
