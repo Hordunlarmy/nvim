@@ -493,6 +493,14 @@ local function run_ex_command_or_notify(cmd, desc)
 end
 
 -- map explorer command to make it easier to open
+vim.keymap.set("n", "<leader>e", function()
+  run_ex_command_or_notify("NvimTreeToggle", "NvimTree")
+end, { desc = "Toggle NvimTree" })
+
+vim.keymap.set("n", "<leader>er", function()
+  run_ex_command_or_notify("NvimTreeFindFile", "NvimTree reveal")
+end, { desc = "Reveal current file in NvimTree" })
+
 vim.keymap.set("n", "<leader>pv", function()
   if vim.fn.exists(":Ex") > 0 then
     vim.cmd("Ex")
@@ -791,8 +799,8 @@ vim.keymap.set('n', '<leader>uc', function()
   vim.api.nvim_set_hl(0, 'TermCursor', { fg = '#000000', bg = '#50fa7b', bold = true })
   vim.api.nvim_set_hl(0, 'TermCursorNC', { fg = '#000000', bg = '#50fa7b' })
   
-  -- Try to force terminal cursor color
-  vim.fn.system([[printf '\e]12;#50fa7b\a']])
+  -- Try to force terminal cursor color without spawning a blocking shell.
+  pcall(vim.api.nvim_chan_send, vim.v.stderr, "\27]12;#50fa7b\7")
   
   vim.notify("🟢 Forcing green cursor! If still blue, your terminal overrides it.", vim.log.levels.WARN, { timeout = 3000 })
 end, { noremap = true, silent = true, desc = "Force green cursor" })

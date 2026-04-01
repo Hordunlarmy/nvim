@@ -159,12 +159,12 @@ Leader key: `<Space>`
 - Shows diagnostics, git status, and modifications
 - Background matches your terminal perfectly
 
-### 📖 Markdown Preview
-**What it does:** Preview markdown files in browser with live updates
-- `<leader>mp` - Toggle markdown preview
-- Live updates as you type
-- Perfect for README files, documentation
-- Supports GitHub-flavored markdown
+### 📖 Mermaid Diagram Preview
+**What it does:** Render Mermaid diagrams from markdown inside Neovim
+- `<leader>md` - Preview diagram under cursor
+- Uses `diagram.nvim` + `image.nvim`
+- Requires `mmdc` and ImageMagick (`magick`/`convert`)
+- Best support in Kitty graphics protocol terminals
 
 ### 🔔 Nvim-notify
 **What it does:** Beautiful notification system for Neovim

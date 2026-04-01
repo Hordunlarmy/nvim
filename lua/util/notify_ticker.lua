@@ -1,11 +1,11 @@
 local M = {}
 
-local queue = {}
 local current = nil
-local offset = 0
 local timer = nil
 local history = {}
 local MAX_HISTORY = 400
+local HISTORY_VIEW_LIMIT = 120
+local HISTORY_LINE_LIMIT = 320
 
 local function now_ms()
   return math.floor(vim.uv.hrtime() / 1e6)
@@ -40,16 +40,16 @@ local function clamp(value, min_v, max_v)
 end
 
 local function resolve_timeout(text, level, opts)
-  local min_timeout = 7000
+  local min_timeout = 1400
   if type(opts) == "table" and type(opts.timeout) == "number" and opts.timeout > 0 then
-    return clamp(math.floor(opts.timeout), min_timeout, 30000)
+    return clamp(math.floor(opts.timeout), min_timeout, 7000)
   end
 
-  local base = clamp(1400 + (#text * 95), min_timeout, 22000)
+  local base = clamp(1200 + (#text * 28), min_timeout, 5200)
   if level == vim.log.levels.ERROR then
-    base = math.min(base + 2200, 26000)
+    base = math.min(base + 900, 6500)
   elseif level == vim.log.levels.WARN then
-    base = math.min(base + 1200, 24000)
+    base = math.min(base + 500, 6000)
   end
   return base
 end
@@ -63,48 +63,18 @@ local function stop_timer()
   timer = nil
 end
 
-local function next_entry()
-  if #queue == 0 then
-    current = nil
-    offset = 0
-    return
-  end
-
-  current = table.remove(queue, 1)
-  current.started_at = now_ms()
-  offset = 0
-end
-
-local function ensure_timer()
-  if timer then
-    return
-  end
+local function schedule_clear(timeout)
+  stop_timer()
   timer = vim.uv.new_timer()
   if not timer then
     return
   end
-
   timer:start(
+    timeout or 2500,
     0,
-    120,
     vim.schedule_wrap(function()
-      if not current then
-        stop_timer()
-        redraw()
-        return
-      end
-
-      offset = offset + 1
-      local started_at = current.started_at or now_ms()
-      if now_ms() - started_at >= (current.timeout or 2500) then
-        next_entry()
-        if not current then
-          stop_timer()
-          redraw()
-          return
-        end
-      end
-
+      current = nil
+      stop_timer()
       redraw()
     end)
   )
@@ -126,23 +96,17 @@ function M.push(msg, level, opts)
     table.remove(history, 1)
   end
 
-  table.insert(queue, {
+  current = {
     text = text,
     level = sev,
     timeout = resolve_timeout(text, sev, opts),
-  })
-
-  if not current then
-    next_entry()
-  end
-  ensure_timer()
+  }
+  schedule_clear(current.timeout)
   redraw()
 end
 
 function M.clear()
-  queue = {}
   current = nil
-  offset = 0
   stop_timer()
   redraw()
 end
@@ -170,9 +134,20 @@ local function level_tag(level)
   return "INFO"
 end
 
+local function trim_line(text, max_len)
+  local s = tostring(text or "")
+  if #s <= max_len then
+    return s
+  end
+  return s:sub(1, max_len - 3) .. "..."
+end
+
 function M.show_history(opts)
   opts = opts or {}
   local entries = M.get_history()
+  if not opts.last and #entries > HISTORY_VIEW_LIMIT then
+    entries = { unpack(entries, #entries - HISTORY_VIEW_LIMIT + 1, #entries) }
+  end
 
   local lines = {}
   if #entries == 0 then
@@ -182,11 +157,16 @@ function M.show_history(opts)
     lines = {
       string.format("[%s] [%s]", item.ts or "--:--:--", level_tag(item.level)),
       "",
-      item.text or "",
+      trim_line(item.text or "", HISTORY_LINE_LIMIT),
     }
   else
     for _, item in ipairs(entries) do
-      lines[#lines + 1] = string.format("[%s] [%s] %s", item.ts or "--:--:--", level_tag(item.level), item.text or "")
+      lines[#lines + 1] = string.format(
+        "[%s] [%s] %s",
+        item.ts or "--:--:--",
+        level_tag(item.level),
+        trim_line(item.text or "", HISTORY_LINE_LIMIT)
+      )
     end
   end
 
@@ -217,8 +197,8 @@ function M.show_history(opts)
     border = "rounded",
   })
 
-  vim.wo[win].wrap = true
-  vim.wo[win].linebreak = true
+  vim.wo[win].wrap = false
+  vim.wo[win].linebreak = false
   vim.wo[win].cursorline = true
   vim.wo[win].number = false
   vim.wo[win].relativenumber = false
@@ -230,26 +210,22 @@ function M.show_history(opts)
   end
   vim.keymap.set("n", "q", close_win, { buffer = buf, silent = true, nowait = true })
   vim.keymap.set("n", "<Esc>", close_win, { buffer = buf, silent = true, nowait = true })
+  -- Avoid clipboard-provider/yanky stalls for large selections in this view.
+  vim.keymap.set("n", "yy", '"0yy', { buffer = buf, silent = true, nowait = true, remap = false })
+  vim.keymap.set("n", "Y", '"0Y', { buffer = buf, silent = true, nowait = true, remap = false })
+  vim.keymap.set("x", "y", '"0y', { buffer = buf, silent = true, nowait = true, remap = false })
 
   return true
 end
 
 local function marquee(text, width, always_roll)
-  local gap = "   "
-  local loop = text .. gap
-  if not always_roll and #text <= width then
+  if not always_roll and vim.fn.strdisplaywidth(text) <= width then
     return text
   end
-  if always_roll and #text < width then
-    loop = text .. string.rep(" ", math.max(4, width - #text)) .. gap
+  if vim.fn.strdisplaywidth(text) <= width then
+    return text
   end
-  local n = #loop
-  local start = (offset % n) + 1
-  local piece = loop:sub(start, start + width - 1)
-  if #piece < width then
-    piece = piece .. loop:sub(1, width - #piece)
-  end
-  return piece
+  return vim.fn.strcharpart(text, 0, width - 1) .. "…"
 end
 
 function M.component(max_width)

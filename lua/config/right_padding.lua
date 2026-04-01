@@ -17,6 +17,9 @@ local function add_right_padding()
   if vim.api.nvim_buf_get_name(0) == "" then
     return
   end
+  if vim.api.nvim_buf_line_count(0) > 5000 then
+    return
+  end
 
   local win = vim.api.nvim_get_current_win()
   vim.wo[win].wrap = true
@@ -24,7 +27,7 @@ local function add_right_padding()
   vim.wo[win].breakindent = true
 end
 
-vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter", "VimResized" }, {
+vim.api.nvim_create_autocmd({ "BufWinEnter", "FileType", "VimResized" }, {
   group = vim.api.nvim_create_augroup("RightPadding", { clear = true }),
   pattern = "*",
   callback = add_right_padding,

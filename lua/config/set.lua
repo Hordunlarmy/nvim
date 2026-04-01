@@ -26,6 +26,8 @@ local indent_group = vim.api.nvim_create_augroup("FileTypeIndent", { clear = tru
 local indent_rules = {
   { ft = { "javascript", "javascriptreact", "typescript", "typescriptreact", "lua", "json", "yaml", "html", "css" },
     opts = { tabstop = 2, softtabstop = 2, shiftwidth = 2, expandtab = true } },
+  { ft = { "clojure", "edn" },
+    opts = { tabstop = 2, softtabstop = 2, shiftwidth = 2, expandtab = true } },
   { ft = { "python" },
     opts = { tabstop = 4, softtabstop = 4, shiftwidth = 4, expandtab = true } },
   { ft = { "php" },
@@ -75,6 +77,39 @@ vim.opt.splitbelow = true
 
 -- Clipboard
 vim.opt.clipboard = "unnamedplus"
+do
+  local function has(cmd)
+    return vim.fn.executable(cmd) == 1
+  end
+
+  if vim.env.WAYLAND_DISPLAY and has("wl-copy") and has("wl-paste") then
+    vim.g.clipboard = {
+      name = "wl-clipboard",
+      copy = {
+        ["+"] = "wl-copy --foreground --type text/plain",
+        ["*"] = "wl-copy --foreground --type text/plain",
+      },
+      paste = {
+        ["+"] = "wl-paste --no-newline",
+        ["*"] = "wl-paste --no-newline",
+      },
+      cache_enabled = 1,
+    }
+  elseif has("xclip") then
+    vim.g.clipboard = {
+      name = "xclip",
+      copy = {
+        ["+"] = "xclip -quiet -i -selection clipboard",
+        ["*"] = "xclip -quiet -i -selection primary",
+      },
+      paste = {
+        ["+"] = "xclip -o -selection clipboard",
+        ["*"] = "xclip -o -selection primary",
+      },
+      cache_enabled = 1,
+    }
+  end
+end
 
 -- Mouse
 vim.opt.mouse = "a"

@@ -20,7 +20,7 @@ return {
       
       -- Clojure
       "clj-kondo",    -- Clojure linter
-      "cljfmt",       -- Clojure formatter
+      "zprint",       -- Clojure formatter
 
       -- DAP (Debuggers)
       "debugpy",      -- Python debugger
@@ -38,5 +38,4 @@ return {
     debounce_hours = 5, -- at least 5 hours between attempts
   },
 }
-
 

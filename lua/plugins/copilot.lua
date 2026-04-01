@@ -1,28 +1,13 @@
-local function get_node_major()
-  if vim.fn.executable("node") ~= 1 then
-    return nil, ""
-  end
-  local out = vim.fn.system({ "node", "--version" })
-  if vim.v.shell_error ~= 0 then
-    return nil, ""
-  end
-  local version = vim.trim(out or "")
-  local major = tonumber(version:match("^v?(%d+)"))
-  return major, version
-end
-
 local config = function()
-  local node_major, node_version = get_node_major()
-  if not node_major or node_major < 22 then
-    vim.notify(
-      "Copilot disabled: Node.js 22+ required. Current version: "
-      .. (node_version ~= "" and node_version or "not found"),
-      vim.log.levels.WARN
-    )
+  if vim.fn.executable("node") ~= 1 then
+    vim.notify("Copilot disabled: node executable not found", vim.log.levels.WARN)
     return
   end
 
-  require("copilot").setup({
+  local async_cmd = require("util.async_cmd")
+
+  local function setup_copilot()
+    require("copilot").setup({
     panel = {
       enabled = true,
       auto_refresh = false,
@@ -108,6 +93,32 @@ local config = function()
     end
     return "<Tab>"
   end, { expr = true, silent = true, desc = "Accept Copilot or insert Tab" })
+
+  end
+
+  async_cmd.run({ "node", "--version" }, {
+    timeout_ms = 1800,
+    progress_key = "copilot_node_check",
+    progress_label = "Checking Node runtime for Copilot",
+  }, function(result)
+    if result.code ~= 0 then
+      vim.notify("Copilot disabled: failed to read Node version", vim.log.levels.WARN)
+      return
+    end
+
+    local version = vim.trim(result.stdout or "")
+    local major = tonumber(version:match("^v?(%d+)"))
+    if not major or major < 22 then
+      vim.notify(
+        "Copilot disabled: Node.js 22+ required. Current version: "
+          .. (version ~= "" and version or "unknown"),
+        vim.log.levels.WARN
+      )
+      return
+    end
+
+    setup_copilot()
+  end)
 end
 
 return {

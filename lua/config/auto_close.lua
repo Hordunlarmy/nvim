@@ -61,8 +61,9 @@ local function check_and_close()
   end
 end
 
--- Re-check when window/buffer state changes.
-vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout", "BufEnter", "WinClosed", "WinEnter", "TabEnter" }, {
+-- Re-check only on destructive/close events.
+-- Buf/Win enter checks are high-frequency and can add noticeable latency.
+vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout", "WinClosed", "TabClosed" }, {
   group = vim.api.nvim_create_augroup("AutoCloseNvim", { clear = true }),
   callback = function()
     vim.defer_fn(check_and_close, 50)

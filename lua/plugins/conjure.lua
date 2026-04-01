@@ -44,8 +44,16 @@ return {
     vim.g["conjure#filetype#rust"] = false
     vim.g["conjure#filetype#python"] = false
     vim.g["conjure#filetype#lua"] = false
+
+    -- Auto-evaluating entire buffers on InsertLeave is expensive and can freeze UI.
+    -- Keep off by default; use explicit eval mappings instead.
+    if vim.g.conjure_auto_eval_on_insert_leave == nil then
+      vim.g.conjure_auto_eval_on_insert_leave = false
+    end
   end,
   config = function()
+    local async_cmd = require("util.async_cmd")
+
     if vim.fn.exists("*ConjureProcessOnExit") == 0 then
       _G.__conjure_process_on_exit = function(job_id)
         local ok, process = pcall(require, "conjure.process")
@@ -80,37 +88,63 @@ return {
       return port
     end
 
-    local function tcp_port_open(_host, port)
+    local function tcp_port_open_async(port, cb)
       local port_s = tostring(port)
+      local function check_ss()
+        if vim.fn.executable("ss") ~= 1 then
+          cb(false)
+          return
+        end
+        async_cmd.run({ "ss", "-ltn", "sport = :" .. port_s }, {
+          timeout_ms = 1000,
+          progress_key = "conjure_port_probe",
+          progress_label = "Checking nREPL port state",
+        }, function(result)
+          local out = result.stdout or ""
+          cb(result.code == 0 and out:find(port_s, 1, true) ~= nil)
+        end)
+      end
+
       if vim.fn.executable("lsof") == 1 then
-        local out = vim.fn.system({ "lsof", "-nP", "-iTCP:" .. port_s, "-sTCP:LISTEN", "-t" })
-        if vim.v.shell_error == 0 and out and out:gsub("%s+", "") ~= "" then
-          return true
-        end
+        async_cmd.run({ "lsof", "-nP", "-iTCP:" .. port_s, "-sTCP:LISTEN", "-t" }, {
+          timeout_ms = 1000,
+          progress_key = "conjure_port_probe",
+          progress_label = "Checking nREPL port state",
+        }, function(result)
+          local out = vim.trim(result.stdout or "")
+          if result.code == 0 and out ~= "" then
+            cb(true)
+            return
+          end
+          check_ss()
+        end)
+        return
       end
-      if vim.fn.executable("ss") == 1 then
-        local out = vim.fn.system({ "ss", "-ltn", "sport = :" .. port_s })
-        if vim.v.shell_error == 0 and out and out:find(port_s, 1, true) then
-          return true
-        end
-      end
-      -- Fallback: if we can't verify listener presence, assume closed.
-      return false
+
+      check_ss()
     end
 
-    local function prune_stale_port_files()
+    local prune_inflight = false
+
+    local function prune_stale_port_files_async(done)
+      if prune_inflight then
+        if done then
+          done()
+        end
+        return
+      end
+      prune_inflight = true
+
       local candidates = { ".nrepl-port", ".shadow-cljs/nrepl.port" }
       local cwd = vim.fn.getcwd()
       local dir = cwd
+      local paths = {}
 
       while dir and dir ~= "" and dir ~= "/" do
         for _, rel in ipairs(candidates) do
           local path = dir .. "/" .. rel
           if vim.fn.filereadable(path) == 1 then
-            local port = read_port(path)
-            if port and not tcp_port_open("127.0.0.1", port) and not tcp_port_open("localhost", port) then
-              pcall(vim.fn.delete, path)
-            end
+            table.insert(paths, path)
           end
         end
         local parent = vim.fn.fnamemodify(dir, ":h")
@@ -119,10 +153,49 @@ return {
         end
         dir = parent
       end
+
+      if #paths == 0 then
+        prune_inflight = false
+        if done then
+          done()
+        end
+        return
+      end
+
+      local pending = 0
+      local function finish_one()
+        pending = pending - 1
+        if pending == 0 then
+          prune_inflight = false
+          if done then
+            done()
+          end
+        end
+      end
+
+      for _, path in ipairs(paths) do
+        local port = read_port(path)
+        if port then
+          pending = pending + 1
+          tcp_port_open_async(port, function(is_open)
+            if not is_open then
+              pcall(vim.fn.delete, path)
+            end
+            finish_one()
+          end)
+        end
+      end
+
+      if pending == 0 then
+        prune_inflight = false
+        if done then
+          done()
+        end
+      end
     end
 
     local function ensure_repl_connected()
-      prune_stale_port_files()
+      prune_stale_port_files_async(function()
 
       local ok_action, action = pcall(require, "conjure.client.clojure.nrepl.action")
       local ok_auto, auto_repl = pcall(require, "conjure.client.clojure.nrepl.auto-repl")
@@ -167,6 +240,7 @@ return {
           end
         end, 350)
       end, 220)
+      end)
     end
 
     local function set_sc_map(bufnr)
@@ -177,7 +251,6 @@ return {
       if ft ~= "clojure" and ft ~= "edn" then
         return
       end
-      prune_stale_port_files()
       vim.keymap.set("n", "<localleader>sc", ensure_repl_connected, {
         buffer = bufnr,
         silent = true,
@@ -400,17 +473,18 @@ return {
       group = group,
       pattern = { "clojure", "edn" },
       callback = function(args)
-        prune_stale_port_files()
+        prune_stale_port_files_async()
         attach_log_keymaps(args.buf)
         
-        -- Auto-eval on InsertLeave (with small delay to ensure buffer is consistent)
-        vim.api.nvim_create_autocmd("InsertLeave", {
-          group = group,
-          buffer = args.buf,
-          callback = function()
-            eval_buffer_on_insert_leave(args.buf)
-          end,
-        })
+        if vim.g.conjure_auto_eval_on_insert_leave then
+          vim.api.nvim_create_autocmd("InsertLeave", {
+            group = group,
+            buffer = args.buf,
+            callback = function()
+              eval_buffer_on_insert_leave(args.buf)
+            end,
+          })
+        end
       end,
     })
 

@@ -322,7 +322,8 @@ if should_run("plugins") then
     "trouble.nvim",
     "which-key.nvim",
     "bufdelete.nvim",
-    "markdown-preview.nvim",
+    "diagram.nvim",
+    "image.nvim",
     "sqlite.lua",
 
     -- Clojure
@@ -457,7 +458,7 @@ if should_run("formatter") then
     { "isort", "python imports" },
     { "shfmt", "shell" },
     { "stylua", "lua" },
-    { "cljfmt", "clojure" },
+    { "zprint", "clojure" },
     { "goimports", "go" },
     { "gofmt", "go" },
   }
@@ -551,10 +552,10 @@ if should_run("clojure") then
   end
 
   describe("formatter and linter binaries")
-  if vim.fn.executable("cljfmt") == 1 then
-    check(true, "cljfmt installed")
+  if vim.fn.executable("zprint") == 1 then
+    check(true, "zprint installed")
   else
-    skip("cljfmt installed", "not in PATH - run :MasonInstall cljfmt")
+    skip("zprint installed", "not in PATH - run :MasonInstall zprint")
   end
   if vim.fn.executable("clj-kondo") == 1 then
     check(true, "clj-kondo installed")

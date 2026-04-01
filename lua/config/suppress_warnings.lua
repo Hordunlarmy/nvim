@@ -8,6 +8,7 @@ local suppressed_patterns = {
   "^recording @",
   "^recording",
   "client%.supports_method is deprecated",
+  "client%.is_stopped is deprecated",
   "^Run \":checkhealth vim%.deprecated\"",
 }
 

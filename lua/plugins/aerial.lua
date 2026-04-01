@@ -31,10 +31,25 @@ return {
 
     local function should_auto_open(bufnr)
       if vim.t.conjure_log_visible then
-        return false
+        local has_conjure_log_win = false
+        for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+          local b = vim.api.nvim_win_get_buf(win)
+          local name = vim.api.nvim_buf_get_name(b)
+          if name and name:match("conjure%-log%-") then
+            has_conjure_log_win = true
+            break
+          end
+        end
+        if has_conjure_log_win then
+          return false
+        end
+        vim.t.conjure_log_visible = false
       end
-      if vim.t.sidekick_active then
-        return false
+      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+        local b = vim.api.nvim_win_get_buf(win)
+        if vim.bo[b].filetype == "sidekick_terminal" then
+          return false
+        end
       end
       if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
         return false
@@ -97,7 +112,8 @@ return {
       preserve_equality = false,
     },
     attach_mode = "window",
-    close_automatic_events = { "unsupported" },
+    -- Keep panel stable across filetypes; don't auto-close when backend is missing.
+    close_automatic_events = {},
     keymaps = {
       ["?"] = "actions.show_help",
       ["g?"] = "actions.show_help",
@@ -133,7 +149,7 @@ return {
       ["zx"] = "actions.tree_sync_folds",
       ["zX"] = "actions.tree_sync_folds",
     },
-    lazy_load = true,
+    lazy_load = false,
     disable_max_lines = 10000,
     disable_max_size = 2000000,
     filter_kind = {
@@ -167,20 +183,9 @@ return {
     link_tree_to_folds = true,
     nerd_font = "auto",
     on_attach = function(bufnr) end,
-    on_first_symbols = function(bufnr)
-      if not should_auto_open(bufnr) then
-        return
-      end
-      if aerial_open_in_tab(0) then
-        return
-      end
-      local ok, aerial = pcall(require, "aerial")
-      if not ok then
-        return
-      end
-      pcall(aerial.open, { focus = false })
-    end,
-    open_automatic = should_auto_open,
+    -- We drive auto-open via an explicit BufEnter autocmd below for determinism.
+    on_first_symbols = nil,
+    open_automatic = false,
     post_jump_cmd = "normal! zz",
     close_on_select = false,
     update_events = "BufWritePost,InsertLeave",
@@ -235,7 +240,16 @@ return {
         vim.notify("Aerial outline unavailable for this buffer", vim.log.levels.WARN)
         return
       end
-      local ok = pcall(aerial.toggle, { focus = false })
+      if aerial_open_in_tab(0) then
+        pcall(aerial.close)
+        return
+      end
+
+      -- Prefer explicit open on the right; fallback to API open.
+      local ok = pcall(vim.cmd, "AerialOpen right")
+      if not ok then
+        ok = pcall(aerial.open, { focus = false })
+      end
       if not ok then
         vim.notify("Aerial outline unavailable for this buffer", vim.log.levels.WARN)
       end
@@ -275,26 +289,38 @@ return {
         
         -- Set buffer-local keymaps
         vim.keymap.set("n", "q", safe_aerial_close, { buffer = bufnr, desc = "Close Aerial (safe)" })
-        vim.keymap.set("n", "<ESC>", safe_aerial_close, { buffer = bufnr, desc = "Close Aerial (safe)" })
       end,
     })
 
-    vim.api.nvim_create_autocmd({ "BufEnter", "BufNewFile", "LspAttach" }, {
-      group = vim.api.nvim_create_augroup("AerialAutoOpenSinglePane", { clear = true }),
+    local auto_group = vim.api.nvim_create_augroup("AerialAutoOpenSinglePane", { clear = true })
+    vim.api.nvim_create_autocmd("BufEnter", {
+      group = auto_group,
       callback = function(args)
         local bufnr = args.buf
-        if not should_auto_open(bufnr) then
+        if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
           return
         end
-        if aerial_open_in_tab(0) then
-          return
-        end
-
-        local ok, aerial = pcall(require, "aerial")
-        if not ok then
-          return
-        end
-        pcall(aerial.open, { focus = false })
+        vim.defer_fn(function()
+          if not vim.api.nvim_buf_is_valid(bufnr) then
+            return
+          end
+          if vim.api.nvim_get_current_buf() ~= bufnr then
+            return
+          end
+          if not should_auto_open(bufnr) then
+            return
+          end
+          if aerial_open_in_tab(0) then
+            return
+          end
+          local ok = pcall(vim.cmd, "AerialOpen right")
+          if not ok then
+            local ok_aerial, aerial = pcall(require, "aerial")
+            if ok_aerial then
+              pcall(aerial.open, { focus = false })
+            end
+          end
+        end, 80)
       end,
     })
 

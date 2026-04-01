@@ -1,6 +1,7 @@
 -- nvim-scrollbar: Visual scrollbar for all windows
 return {
   "petertriho/nvim-scrollbar",
+  enabled = false,
   config = function()
     require("scrollbar").setup({
       show = true,
@@ -56,4 +57,3 @@ return {
     })
   end,
 }
-

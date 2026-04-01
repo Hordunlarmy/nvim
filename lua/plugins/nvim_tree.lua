@@ -47,12 +47,18 @@ local config = function()
     },
     update_focused_file = {
       enable = true,
-      update_root = true,
+      -- Avoid cwd/root churn on every file switch.
+      update_root = false,
       ignore_list = { "help" },
     },
     diagnostics = {
       enable = diagnostics_enabled,
       show_on_dirs = true,
+    },
+    git = {
+      enable = true,
+      ignore = false,
+      timeout = 2000,
     },
     filters = {
       custom = {
@@ -66,7 +72,8 @@ local config = function()
         restrict_above_cwd = true,
       },
       open_file = {
-        resize_window = true,
+        -- Keep tree width stable; resizing here fights with other side panes.
+        resize_window = false,
         window_picker = {
           chars = "aoeui",
         },
@@ -90,11 +97,39 @@ local config = function()
     },
   }) 
 
-  -- Move cursor to the main editing window once, without stacking on reload.
+  -- Startup layout: always open tree + aerial on launch, then focus main window.
   vim.api.nvim_create_autocmd("VimEnter", {
-    group = vim.api.nvim_create_augroup("NvimTreeFocusMain", { clear = true }),
+    group = vim.api.nvim_create_augroup("NvimStartupLayout", { clear = true }),
+    once = true,
     callback = function()
-      pcall(vim.cmd, "wincmd p")
+      vim.defer_fn(function()
+        local ok_tree, api = pcall(require, "nvim-tree.api")
+        if ok_tree then
+          pcall(api.tree.open)
+        end
+
+        local main_win = nil
+        for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+          if vim.api.nvim_win_is_valid(win) then
+            local buf = vim.api.nvim_win_get_buf(win)
+            local ft = vim.bo[buf].filetype
+            if ft ~= "NvimTree" and ft ~= "aerial" then
+              main_win = win
+              break
+            end
+          end
+        end
+
+        if main_win and vim.api.nvim_win_is_valid(main_win) then
+          pcall(vim.api.nvim_set_current_win, main_win)
+        end
+
+        pcall(vim.cmd, "silent! AerialOpen right")
+
+        if main_win and vim.api.nvim_win_is_valid(main_win) then
+          pcall(vim.api.nvim_set_current_win, main_win)
+        end
+      end, 80)
     end,
   })
 

@@ -42,7 +42,8 @@ return {
       },
     },
     system_clipboard = {
-      sync_with_ring = true,
+      -- Prevent background clipboard sync from blocking UI on desktop lock/unlock.
+      sync_with_ring = false,
     },
     highlight = {
       on_put = true,
@@ -58,5 +59,4 @@ return {
     require("telescope").load_extension("yank_history")
   end,
 }
-
 

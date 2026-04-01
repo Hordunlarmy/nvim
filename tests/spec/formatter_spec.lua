@@ -28,10 +28,10 @@ describe("formatter", function()
   end)
 
   describe("clojure formatter", function()
-    it("cljfmt is installed", function()
-      local is_installed = vim.fn.executable("cljfmt") == 1
+    it("zprint is installed", function()
+      local is_installed = vim.fn.executable("zprint") == 1
       if not is_installed then
-        pending("cljfmt not found in PATH (install via Mason: :MasonInstall cljfmt)")
+        pending("zprint not found in PATH (install via Mason: :MasonInstall zprint)")
       else
         assert.is_true(is_installed)
       end

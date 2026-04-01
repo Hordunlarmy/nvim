@@ -11,3 +11,4 @@ require("config.auto_close")
 require("config.fix_luasnip")  -- Adds :LuaSnipRebuild command
 require("config.mode_colors")  -- Window separators change color based on mode
 require("config.right_padding")  -- Add right margin to main buffer
+require("config.buffer_plugin_info")  -- Adds :BufferPluginInfo and <leader>uP

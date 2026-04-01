@@ -5,10 +5,7 @@ return {
   lazy = false,
   opts = {
     messages = {
-      enabled = true,
-      view = "notify",
-      view_error = "notify",
-      view_warn = "notify",
+      enabled = false,
       view_history = "messages",
     },
     notify = {

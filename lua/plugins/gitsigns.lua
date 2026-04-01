@@ -3,6 +3,22 @@
 return {
   "lewis6991/gitsigns.nvim",
   event = { "BufReadPre", "BufNewFile" },
+  keys = {
+    {
+      "<leader>gt",
+      function()
+        require("util.git_popup").show_unified_diff_popup()
+      end,
+      desc = "Git diff this (popup)",
+    },
+    {
+      "<leader>gT",
+      function()
+        require("util.git_popup").show_unified_diff_popup({ rev = "~" })
+      end,
+      desc = "Git diff this ~ (popup)",
+    },
+  },
   config = function()
     local git_popup = require("util.git_popup")
 

@@ -95,10 +95,10 @@ describe("clojure support", function()
   end)
 
   describe("formatter", function()
-    it("cljfmt binary is installed", function()
-      local is_installed = vim.fn.executable("cljfmt") == 1
+    it("zprint binary is installed", function()
+      local is_installed = vim.fn.executable("zprint") == 1
       if not is_installed then
-        pending("cljfmt not found in PATH (run :MasonInstall cljfmt)")
+        pending("zprint not found in PATH (run :MasonInstall zprint)")
       else
         assert.is_true(is_installed)
       end

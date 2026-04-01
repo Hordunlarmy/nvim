@@ -20,4 +20,4 @@ Formatter is present but not necessarily used for all languages; it is configure
 EFM is enabled only when `efm-langserver` is installed and only for linters/formatters that are present. This prevents noisy errors and saves startup time.
 
 ## Clojure formatting
-If `cljfmt` is installed (via Mason), Conform can run it for Clojure. The setup avoids throwing errors when formatters are missing.
+If `zprint` is installed (via Mason), Conform can run it for Clojure. The setup avoids throwing errors when formatters are missing.

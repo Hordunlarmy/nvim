@@ -1,6 +1,12 @@
 -- Force floats to stay scoped to an actual window (not full editor grid).
 -- This catches all code paths by patching nvim_open_win/nvim_win_set_config.
 
+-- This global monkey-patch is expensive and can cause UI churn/stalls.
+-- Keep it opt-in for debugging only.
+if vim.g.enable_float_fix ~= true then
+  return {}
+end
+
 local group = vim.api.nvim_create_augroup("FloatFix", { clear = true })
 local state = { last_normal_win = nil }
 

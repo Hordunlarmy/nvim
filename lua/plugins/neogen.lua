@@ -10,7 +10,7 @@ return {
   cmd = "Neogen",  -- Load when :Neogen command is used
   keys = {
     { "<leader>cc", desc = "Generate documentation" },
-    { "<leader>cf", desc = "Generate function docs" },
+    { "<leader>cF", desc = "Generate function docs" },
   },
   config = function()
     require('neogen').setup({
@@ -73,7 +73,7 @@ return {
       vim.tbl_extend("force", opts, { desc = "Generate documentation" }))
     
     -- Specific types - using <leader>c prefix (now available since we removed chmod!)
-    vim.keymap.set("n", "<leader>cf", function() require('neogen').generate({ type = 'func' }) end,
+    vim.keymap.set("n", "<leader>cF", function() require('neogen').generate({ type = 'func' }) end,
       vim.tbl_extend("force", opts, { desc = "Generate function docs" }))
     
     vim.keymap.set("n", "<leader>cl", function() require('neogen').generate({ type = 'class' }) end,
@@ -86,4 +86,3 @@ return {
       vim.tbl_extend("force", opts, { desc = "Generate file docs" }))
   end,
 }
-

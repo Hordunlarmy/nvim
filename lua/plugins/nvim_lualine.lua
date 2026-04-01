@@ -2,9 +2,7 @@
 
 local config = function()
     local lualine = require("lualine")
-    local progress = require("util.progress")
     local ok_ticker, ticker = pcall(require, "util.notify_ticker")
-    progress.setup()
 
     local guarded_names = {
         statusline = true,
@@ -40,14 +38,6 @@ local config = function()
         nvim_opts._statusline_guard = true
     end
 
-    local function progress_busy_safe()
-        local ok, value = pcall(progress.is_busy)
-        if not ok then
-            return false
-        end
-        return value == true
-    end
-
     local function ticker_text_safe()
         if not ok_ticker then
             return ""
@@ -60,6 +50,8 @@ local config = function()
         if not ok or type(text) ~= "string" then
             return ""
         end
+        -- Escape percent only for raw statusline payload from ticker.
+        text = text:gsub("%%", "%%%%")
         return sanitize_statusline(text)
     end
 
@@ -87,9 +79,6 @@ local config = function()
         return sanitize_statusline(location)
     end
 
-    local function busy()
-        return progress_busy_safe()
-    end
     local function show_ticker()
         return ticker_has_current_safe()
     end
@@ -123,12 +112,6 @@ local config = function()
                     end,
                     cond = show_ticker,
                 },
-                {
-                    progress.fullwidth_component,
-                    cond = function()
-                        return busy() and not show_ticker()
-                    end,
-                },
             },
             lualine_x = {
                 { "encoding" },
@@ -148,30 +131,22 @@ local config = function()
             lualine_y = {},
             lualine_z = {},
         },
-        winbar = {
-            lualine_c = {
-                { "filename", path = 1, symbols = { modified = " ●", readonly = " 󰌾" } },
-                {
-                    function()
-                        local location = navic_location_safe()
-                        if location == "" then
-                            return ""
-                        end
-                        return "  " .. location
-                    end,
-                    cond = function()
-                        return navic_location_safe() ~= ""
-                    end,
-                },
-            },
-        },
-        inactive_winbar = {
-            lualine_c = {
-                { "filename", path = 1 },
-            },
-        },
+        winbar = {},
+        inactive_winbar = {},
         tabline = {},
         extensions = { "nvim-tree" },
+    })
+
+    -- Keep global statusline stable even if plugins try to change it.
+    local group = vim.api.nvim_create_augroup("LualineGlobalStatusGuard", { clear = true })
+    vim.api.nvim_create_autocmd("VimEnter", {
+        group = group,
+        callback = function()
+            if vim.o.laststatus ~= 3 then
+                vim.o.laststatus = 3
+            end
+            pcall(lualine.refresh, { place = { "statusline" } })
+        end,
     })
 end
 

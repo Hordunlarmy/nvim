@@ -160,26 +160,28 @@ return {
     local notify = require("notify")
     notify.setup(opts)
 
-    local routed_vim_notify = vim.notify
-    local function route_to_statusline(msg, level, notify_opts)
-      if type(routed_vim_notify) == "function" then
-        routed_vim_notify(msg, level, notify_opts)
+    -- Enforce ticker routing as the final notify owner.
+    local ok_ticker, ticker = pcall(require, "util.notify_ticker")
+    if ok_ticker and type(ticker.push) == "function" then
+      local function route_notify(msg, level, notify_opts)
+        pcall(ticker.push, msg, level, notify_opts)
       end
-      return { id = math.floor(vim.uv.hrtime() / 1e6) }
-    end
+      vim.notify = route_notify
 
-    notify.notify = route_to_statusline
-    local mt = getmetatable(notify)
-    if mt then
-      mt.__call = function(_, msg, level, notify_opts)
-        if vim.in_fast_event() then
-          vim.schedule(function()
-            route_to_statusline(msg, level, notify_opts)
-          end)
-          return { id = math.floor(vim.uv.hrtime() / 1e6) }
-        end
-        return route_to_statusline(msg, level, notify_opts)
-      end
+      -- Route direct `require("notify")(...)` callers into ticker as well.
+      local proxy = {}
+      setmetatable(proxy, {
+        __call = function(_, msg, level, notify_opts)
+          route_notify(msg, level, notify_opts)
+        end,
+        __index = function(_, key)
+          return notify[key]
+        end,
+        __newindex = function(_, key, value)
+          notify[key] = value
+        end,
+      })
+      package.loaded["notify"] = proxy
     end
   end,
 }

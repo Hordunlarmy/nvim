@@ -10,6 +10,17 @@ return {
     local alpha = require("alpha")
     local dashboard = require("alpha.themes.dashboard")
     local telescope_themes = require("telescope.themes")
+    local raw_alpha_draw = alpha.draw
+
+    -- alpha can hold a stale state.winid during rapid window churn.
+    -- Guarding here prevents Invalid window id crashes from nvim_win_get_width().
+    alpha.draw = function(...)
+      local state = alpha.state
+      if type(state) == "table" and state.winid and not vim.api.nvim_win_is_valid(state.winid) then
+        state.winid = nil
+      end
+      return raw_alpha_draw(...)
+    end
 
     local function tb(name, opts)
       local ok, builtin = pcall(require, "telescope.builtin")
@@ -94,17 +105,70 @@ return {
     }
 
     local function footer()
-      local stats = require("lazy").stats()
+      local ok_lazy, lazy = pcall(require, "lazy")
+      local stats = ok_lazy and type(lazy.stats) == "function" and lazy.stats() or {}
       local version = vim.version()
       return string.format(
         "%s  •  %d plugins  •  %.2fms  •  v%d.%d.%d",
         os.date("%d-%m-%Y  %H:%M"),
-        stats.count,
-        stats.startuptime,
+        stats.count or 0,
+        tonumber(stats.startuptime) or 0,
         version.major,
         version.minor,
         version.patch
       )
+    end
+
+    local function has_alpha_window()
+      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+        if vim.api.nvim_win_is_valid(win) then
+          local buf = vim.api.nvim_win_get_buf(win)
+          if vim.bo[buf].filetype == "alpha" then
+            return true
+          end
+        end
+      end
+      return false
+    end
+
+    local function safe_alpha_redraw()
+      if not has_alpha_window() then
+        return
+      end
+      vim.schedule(function()
+        if has_alpha_window() then
+          pcall(vim.cmd.AlphaRedraw)
+        end
+      end)
+    end
+
+    local function clear_alpha_state(win, buf)
+      local ok_alpha, alpha_mod = pcall(require, "alpha")
+      if not ok_alpha or type(alpha_mod) ~= "table" then
+        return
+      end
+      local state = alpha_mod.state
+      if type(state) ~= "table" then
+        return
+      end
+
+      if win and state.winid == win then
+        state.winid = nil
+      end
+      if buf and (state.bufnr == buf or state.buffer == buf) then
+        state.bufnr = nil
+        state.buffer = nil
+      end
+    end
+
+    local function refresh_footer(redraw)
+      if vim.o.lines < 24 then
+        return
+      end
+      dashboard.section.footer.val = footer()
+      if redraw and vim.bo[vim.api.nvim_get_current_buf()].filetype == "alpha" then
+        safe_alpha_redraw()
+      end
     end
 
     local screen_lines = vim.o.lines
@@ -112,7 +176,7 @@ return {
     local show_footer = screen_lines >= 24
 
     dashboard.section.header.opts.hl = "Comment"
-    dashboard.section.footer.val = show_footer and footer() or ""
+    dashboard.section.footer.val = ""
     dashboard.section.footer.opts.hl = "Comment"
 
     local layout = {
@@ -134,6 +198,7 @@ return {
 
     dashboard.opts.opts.noautocmd = true
     alpha.setup(dashboard.opts)
+    refresh_footer(false)
 
     -- Replace header with alpha-ascii random header set.
     local ok_ascii, ascii = pcall(require, "alpha_ascii")
@@ -171,7 +236,7 @@ return {
       header.val = clipped
     end
     constrain_header_size()
-    pcall(vim.cmd.AlphaRedraw)
+    safe_alpha_redraw()
 
     local function map_dashboard_keys(bufnr)
       local opts = { buffer = bufnr, noremap = true, silent = true, nowait = true }
@@ -195,10 +260,19 @@ return {
       callback = function()
         vim.opt_local.fillchars = { eob = " " }
         constrain_header_size()
+        refresh_footer(true)
         local bufnr = vim.api.nvim_get_current_buf()
         if vim.bo[bufnr].filetype == "alpha" then
           map_dashboard_keys(bufnr)
         end
+      end,
+    })
+
+    vim.api.nvim_create_autocmd("User", {
+      pattern = { "LazyDone", "VeryLazy" },
+      callback = function()
+        -- Lazy's final startup timing is only known after its startup events.
+        refresh_footer(true)
       end,
     })
 
@@ -208,6 +282,7 @@ return {
         vim.opt_local.foldenable = false
         vim.opt_local.number = false
         vim.opt_local.relativenumber = false
+        refresh_footer(true)
         map_dashboard_keys(event.buf)
       end,
     })
@@ -237,9 +312,24 @@ return {
           if win ~= current_win and vim.api.nvim_win_is_valid(win) then
             local buf = vim.api.nvim_win_get_buf(win)
             if vim.bo[buf].filetype == "alpha" then
+              clear_alpha_state(win, buf)
               pcall(vim.api.nvim_win_close, win, true)
             end
           end
+        end
+      end,
+    })
+
+    vim.api.nvim_create_autocmd("WinClosed", {
+      group = vim.api.nvim_create_augroup("AlphaStateCleanup", { clear = true }),
+      callback = function(event)
+        local winid = tonumber(event.match)
+        if not winid then
+          return
+        end
+        local ok, buf = pcall(vim.api.nvim_win_get_buf, winid)
+        if ok and vim.bo[buf].filetype == "alpha" then
+          clear_alpha_state(winid, buf)
         end
       end,
     })

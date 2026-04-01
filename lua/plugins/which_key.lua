@@ -202,26 +202,29 @@ return {
       { "<leader>bp", desc = "Pick buffer" },
       
       -- UI toggles (alphabetically sorted)
-      { "<leader>uD", desc = "Toggle Drop effect" },
       { "<leader>uc", desc = "Force green cursor" },
       { "<leader>uh", desc = "Message history (popup)" },
       { "<leader>uH", desc = "Last message (details)" },
       { "<leader>uL", desc = "Rebuild LuaSnip (fix jsregexp)" },
       { "<leader>un", desc = "Dismiss notifications" },
       { "<leader>uN", desc = "Fix line numbers" },
+      { "<leader>uP", desc = "Buffer plugin inspector" },
       { "<leader>tb", desc = "Toggle git blame" },
       { "<leader>tg", desc = "Toggle git deleted" },
       
       -- Markdown
-      { "<leader>mp", desc = "Markdown Preview" },
+      { "<leader>md", desc = "Mermaid/Diagram Preview" },
       
       -- Code/Docs (Neogen) - alphabetically sorted
       { "<leader>ca", desc = "Code actions (LSP)" },
       { "<leader>cc", desc = "Generate docs (auto)" },
       { "<leader>ce", desc = "Enable completion" },
-      { "<leader>cf", desc = "Generate function docs" },
+      { "<leader>cf", desc = "Format buffer" },
+      { "<leader>cF", desc = "Generate function docs" },
       { "<leader>ci", desc = "Generate file docs" },
       { "<leader>cl", desc = "Generate class docs" },
+      { "<leader>cr", desc = "Format current line" },
+      { "<leader>cr", desc = "Format selection", mode = "v" },
       { "<leader>ct", desc = "Generate type docs" },
       
       -- Trouble (diagnostics)
@@ -297,7 +300,8 @@ return {
       { "<C-Down>", desc = "Decrease height" },
       
       -- Tree
-      { "<leader>e", desc = "Toggle file tree" },
+      { "<leader>e", desc = "Toggle NvimTree" },
+      { "<leader>er", desc = "Reveal file in NvimTree" },
       
       -- Flash (jump)
       { "s", desc = "Flash jump", mode = { "n", "x", "o" } },
@@ -344,9 +348,6 @@ return {
       { "<leader>ev", desc = "Extract variable", mode = { "n", "v" } },
       { "<leader>i", group = "inline/refactor" },
       { "<leader>iv", desc = "Inline variable" },
-      
-      -- Explore/Tree (under <leader>e)
-      { "<leader>e", desc = "Toggle NvimTree" },
       
       -- Outline/Aerial (under <leader>o)
       { "<leader>o", desc = "Toggle Outline (Aerial)" },
