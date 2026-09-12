@@ -1,7 +1,10 @@
 -- Guard against invalid control characters in statusline values.
 -- Some async component callbacks may emit bytes that break :set statusline.
 
-if not vim.g._statusline_guard_installed then
+-- Neovim 0.13's vim.opt list-option accessors are incompatible with replacing
+-- vim.api option setters. Keep this legacy guard dormant; the interception
+-- makes calls such as vim.opt.diffopt:get() return nil in current nightlies.
+if false and not vim.g._statusline_guard_installed then
   vim.g._statusline_guard_installed = true
 
   local raw_set_option = vim.api.nvim_set_option

@@ -243,6 +243,34 @@ return {
       end)
     end
 
+    local function repl_connected()
+      local ok_server, server = pcall(require, "conjure.client.clojure.nrepl.server")
+      if not ok_server or type(server["connected?"]) ~= "function" then
+        return false
+      end
+      local ok, connected = pcall(server["connected?"])
+      return ok and connected == true
+    end
+
+    -- A first evaluation should work too: start/connect nREPL, then wait for
+    -- the connection instead of dropping the request while the process boots.
+    local function when_repl_ready(action)
+      ensure_repl_connected()
+      local attempts = 0
+      local function wait_for_connection()
+        if repl_connected() then
+          return action()
+        end
+        attempts = attempts + 1
+        if attempts >= 40 then
+          vim.notify("Conjure could not connect to nREPL. Use \\sc to retry and check the log with \\lv.", vim.log.levels.WARN)
+          return
+        end
+        vim.defer_fn(wait_for_connection, 250)
+      end
+      wait_for_connection()
+    end
+
     local function set_sc_map(bufnr)
       if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
         return
@@ -431,6 +459,36 @@ return {
         end
 
         local opts = { buffer = bufnr, silent = true }
+        vim.keymap.set("n", "<localleader>ee", function()
+          when_repl_ready(function()
+            local ok, eval = pcall(require, "conjure.eval")
+            if ok and type(eval["current-form"]) == "function" then
+              eval["current-form"]()
+            end
+          end)
+        end, vim.tbl_extend("force", opts, {
+          desc = "Conjure: eval form/function under cursor",
+        }))
+        vim.keymap.set("n", "<localleader>er", function()
+          when_repl_ready(function()
+            local ok, eval = pcall(require, "conjure.eval")
+            if ok and type(eval["root-form"]) == "function" then
+              eval["root-form"]()
+            end
+          end)
+        end, vim.tbl_extend("force", opts, {
+          desc = "Conjure: eval top-level form",
+        }))
+        vim.keymap.set("n", "<localleader>eb", function()
+          when_repl_ready(function()
+            local ok, eval = pcall(require, "conjure.eval")
+            if ok and type(eval.buf) == "function" then
+              eval.buf()
+            end
+          end)
+        end, vim.tbl_extend("force", opts, {
+          desc = "Conjure: eval current buffer",
+        }))
         vim.keymap.set("n", "<localleader>lv", function()
           ensure_repl_connected()
           vim.defer_fn(open_log_vsplit_replacing_aerial, 220)
@@ -502,9 +560,47 @@ return {
           return
         end
         vim.t.conjure_log_visible = true
+        if not vim.b[args.buf].conjure_repl_shortcuts_shown then
+          vim.b[args.buf].conjure_repl_shortcuts_shown = true
+          local ok, log = pcall(require, "conjure.log")
+          if ok and type(log.append) == "function" then
+            log.append({
+              "; REPL shortcuts",
+              "; i: type a Clojure form",
+              "; Ctrl+Enter or Ctrl+e: evaluate what you typed",
+              "; Enter (Normal mode): evaluate form under cursor",
+              "; q: close this REPL/log pane",
+            }, { ["break?"] = true })
+          end
+        end
+        local function eval_log_input()
+          when_repl_ready(function()
+            local ok, eval = pcall(require, "conjure.eval")
+            if not ok then
+              return
+            end
+            -- In the log, the form just typed at the bottom is evaluated just
+            -- like a normal REPL submission. Fall back to the current line for
+            -- a simple one-line expression.
+            if type(eval["current-form"]) == "function" and eval["current-form"]() then
+              return
+            end
+            local code = vim.trim(vim.api.nvim_get_current_line())
+            if code ~= "" and not vim.startswith(code, ";") and type(eval.command) == "function" then
+              eval.command(code)
+            end
+          end)
+        end
         vim.keymap.set("n", "q", close_log_and_restore, { buffer = args.buf, silent = true, desc = "Close log + restore Aerial" })
         vim.keymap.set("n", "<Esc>", close_log_and_restore, { buffer = args.buf, silent = true, desc = "Close log + restore Aerial" })
         vim.keymap.set({ "n", "i" }, "<F2>", clear_conjure_log, { buffer = args.buf, silent = true, desc = "Conjure: clear log (F2)" })
+        vim.keymap.set("n", "<CR>", eval_log_input, { buffer = args.buf, silent = true, desc = "Conjure REPL: evaluate typed form" })
+        for _, key in ipairs({ "<C-CR>", "<C-e>" }) do
+          vim.keymap.set("i", key, function()
+            vim.cmd("stopinsert")
+            vim.schedule(eval_log_input)
+          end, { buffer = args.buf, silent = true, desc = "Conjure REPL: evaluate typed form" })
+        end
       end,
     })
 

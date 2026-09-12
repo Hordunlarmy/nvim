@@ -1,134 +1,100 @@
--- persistence.nvim: Session management
+-- persistence.nvim: restore files without restoring stale editor splits.
 return {
   "folke/persistence.nvim",
-  lazy = false,  -- Load immediately to ensure function is available
-  priority = 100,  -- Load early
+  lazy = false,
+  priority = 100,
   opts = {
     dir = vim.fn.expand(vim.fn.stdpath("state") .. "/sessions/"),
-    options = { "buffers", "curdir", "tabpages", "winsize", "folds" },
   },
   config = function(_, opts)
     require("persistence").setup(opts)
-    
-    -- Custom session restore function that reopens nvim-tree and aerial
-    _G.restore_session_with_plugins = function()
-      -- Load the session
-      require("persistence").load()
-      
-      -- Small delay to let session load properly
+
+    local function is_file_buffer(bufnr)
+      return bufnr
+        and vim.api.nvim_buf_is_valid(bufnr)
+        and vim.bo[bufnr].buftype == ""
+        and vim.api.nvim_buf_get_name(bufnr) ~= ""
+    end
+
+    local function is_editor_buffer(bufnr)
+      return bufnr
+        and vim.api.nvim_buf_is_valid(bufnr)
+        and vim.bo[bufnr].buftype == ""
+        and vim.bo[bufnr].filetype ~= "NvimTree"
+        and vim.bo[bufnr].filetype ~= "aerial"
+    end
+
+    local function first_file_buffer()
+      for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+        if is_file_buffer(bufnr) and vim.bo[bufnr].buflisted then
+          return bufnr
+        end
+      end
+    end
+
+    -- Session files contain window layout as well as buffers. We retain the
+    -- buffers, but close only extra normal editor windows afterwards. Tree and
+    -- Aerial are never closed here: they manage async state internally.
+    _G.restore_session_with_plugins = function(load_opts)
+      require("persistence").load(load_opts or {})
+
       vim.defer_fn(function()
-        -- Step 1: Close all nvim-tree and aerial windows (they might be in wrong positions)
-        for _, win in ipairs(vim.api.nvim_list_wins()) do
-          local buf = vim.api.nvim_win_get_buf(win)
-          if vim.api.nvim_buf_is_valid(buf) then
-            local ft = vim.api.nvim_buf_get_option(buf, "filetype")
-            if ft == "NvimTree" or ft == "aerial" then
-              pcall(vim.api.nvim_win_close, win, true)
+        local target_win
+        local target_buf
+        local current_win = vim.api.nvim_get_current_win()
+        if vim.api.nvim_win_is_valid(current_win) and is_file_buffer(vim.api.nvim_win_get_buf(current_win)) then
+          target_win = current_win
+          target_buf = vim.api.nvim_win_get_buf(current_win)
+        end
+
+        if not target_win then
+          for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+            if is_file_buffer(vim.api.nvim_win_get_buf(win)) then
+              target_win = win
+              target_buf = vim.api.nvim_win_get_buf(win)
+              break
             end
           end
         end
-        
-        -- Step 2: Close empty unnamed buffers created during restore
-        local buffers = vim.api.nvim_list_bufs()
-        for _, buf in ipairs(buffers) do
-          if vim.api.nvim_buf_is_valid(buf) then
-            local name = vim.api.nvim_buf_get_name(buf)
-            local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-            local modified = vim.api.nvim_buf_get_option(buf, "modified")
-            -- Delete empty unnamed buffers
-            if name == "" and buftype == "" and not modified then
-              pcall(vim.api.nvim_buf_delete, buf, { force = false })
+
+        target_buf = target_buf or first_file_buffer()
+        if not target_win then
+          for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+            if is_editor_buffer(vim.api.nvim_win_get_buf(win)) then
+              target_win = win
+              break
             end
           end
         end
-        
-        -- Step 3: Find if we have normal files to work with
-        local has_files = false
-        local first_normal_buf = nil
-        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-          if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_get_option(buf, "buflisted") then
-            local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-            local name = vim.api.nvim_buf_get_name(buf)
-            local ft = vim.api.nvim_buf_get_option(buf, "filetype")
-            if buftype == "" and name ~= "" and ft ~= "NvimTree" and ft ~= "aerial" then
-              has_files = true
-              if not first_normal_buf then
-                first_normal_buf = buf
-              end
-            end
+
+        if not target_win or not target_buf or not vim.api.nvim_win_is_valid(target_win) then
+          return
+        end
+
+        -- Ensure the one retained editor window actually displays a restored file.
+        vim.api.nvim_win_set_buf(target_win, target_buf)
+        for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+          if win ~= target_win and vim.api.nvim_win_is_valid(win) and is_editor_buffer(vim.api.nvim_win_get_buf(win)) then
+            pcall(vim.api.nvim_win_close, win, false)
           end
         end
-        
-        if has_files and first_normal_buf then
-          -- Step 4: Focus on the first normal buffer
-          vim.cmd("buffer " .. first_normal_buf)
-          
-          -- Step 5: Open nvim-tree on the LEFT
-          vim.defer_fn(function()
-            local nvim_tree_ok, nvim_tree_api = pcall(require, "nvim-tree.api")
-            if nvim_tree_ok then
-              nvim_tree_api.tree.open()
-              
-              -- Step 6: Focus back to the main buffer
-              vim.defer_fn(function()
-                for _, win in ipairs(vim.api.nvim_list_wins()) do
-                  local buf = vim.api.nvim_win_get_buf(win)
-                  local ft = vim.api.nvim_buf_get_option(buf, "filetype")
-                  if ft ~= "NvimTree" and ft ~= "aerial" and ft ~= "" then
-                    vim.api.nvim_set_current_win(win)
-                    break
-                  end
-                end
-                
-                -- Step 7: Open Aerial on the RIGHT (if viewing code)
-                vim.defer_fn(function()
-                  local aerial_ok = pcall(require, "aerial")
-                  if aerial_ok then
-                    local buf = vim.api.nvim_get_current_buf()
-                    local ft = vim.api.nvim_buf_get_option(buf, "filetype")
-                    local code_filetypes = {"lua", "python", "javascript", "typescript", "go", "rust", "c", "cpp", "java"}
-                    if vim.tbl_contains(code_filetypes, ft) then
-                      vim.cmd("AerialOpen right")
-                      
-                      -- Step 8: Final focus on main buffer
-                      vim.defer_fn(function()
-                        for _, win in ipairs(vim.api.nvim_list_wins()) do
-                          local buf = vim.api.nvim_win_get_buf(win)
-                          local ft = vim.api.nvim_buf_get_option(buf, "filetype")
-                          if ft ~= "NvimTree" and ft ~= "aerial" and ft ~= "" then
-                            vim.api.nvim_set_current_win(win)
-                            break
-                          end
-                        end
-                      end, 50)
-                    end
-                  end
-                end, 100)
-              end, 100)
-            end
-          end, 50)
+        if vim.api.nvim_win_is_valid(target_win) then
+          vim.api.nvim_set_current_win(target_win)
         end
-      end, 50)
+        -- Reopen the tree without closing/recreating any Aerial buffers.
+        local ok, tree = pcall(require, "nvim-tree.api")
+        if ok then
+          pcall(tree.tree.open)
+          if vim.api.nvim_win_is_valid(target_win) then
+            vim.api.nvim_set_current_win(target_win)
+          end
+        end
+      end, 500)
     end
   end,
   keys = {
-    {
-      "<leader>qs",
-      function()
-        _G.restore_session_with_plugins()
-      end,
-      desc = "Restore Session",
-    },
-    {
-      "<leader>ql",
-      function()
-        require("persistence").load({ last = true })
-        vim.defer_fn(function()
-          _G.restore_session_with_plugins()
-        end, 100)
-      end,
-      desc = "Restore Last Session",
-    },
+    { "<leader>qs", function() _G.restore_session_with_plugins() end, desc = "Restore Session" },
+    { "<leader>ql", function() _G.restore_session_with_plugins({ last = true }) end, desc = "Restore Last Session" },
     {
       "<leader>qw",
       function()
@@ -137,14 +103,6 @@ return {
       end,
       desc = "Save Session (manual)",
     },
-    {
-      "<leader>qd",
-      function()
-        require("persistence").stop()
-      end,
-      desc = "Don't Save Current Session",
-    },
+    { "<leader>qd", function() require("persistence").stop() end, desc = "Don't Save Current Session" },
   },
 }
-
-

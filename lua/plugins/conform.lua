@@ -1,4 +1,18 @@
 -- conform.nvim: Auto-formatting on save
+-- Set to true only when you want Clojure formatting enabled for this setup.
+local clojure_formatting_enabled = false
+
+local clojure_filetypes = {
+  clojure = true,
+  cljc = true,
+  cljs = true,
+  edn = true,
+}
+
+local function formatting_disabled(bufnr)
+  return not clojure_formatting_enabled and clojure_filetypes[vim.bo[bufnr].filetype] == true
+end
+
 return {
   "stevearc/conform.nvim",
   event = { "BufWritePre" },
@@ -10,6 +24,10 @@ return {
     {
       "<leader>cf",
       function()
+        if formatting_disabled(0) then
+          vim.notify("Formatting is disabled for Clojure files", vim.log.levels.INFO)
+          return
+        end
         local ok, conform = pcall(require, "conform")
         if not ok then
           return
@@ -22,6 +40,10 @@ return {
     {
       "<leader>cr",
       function()
+        if formatting_disabled(0) then
+          vim.notify("Formatting is disabled for Clojure files", vim.log.levels.INFO)
+          return
+        end
         local ok, conform = pcall(require, "conform")
         if not ok then
           return
@@ -43,6 +65,10 @@ return {
     {
       "<leader>cr",
       function()
+        if formatting_disabled(0) then
+          vim.notify("Formatting is disabled for Clojure files", vim.log.levels.INFO)
+          return
+        end
         local ok, conform = pcall(require, "conform")
         if not ok then
           return
@@ -83,6 +109,9 @@ return {
             return false
           end
           local ft = vim.bo[bufnr].filetype
+          if formatting_disabled(bufnr) then
+            return false
+          end
           if ft == "aerial" or ft == "NvimTree" or ft == "alpha" or ft == "help" or ft == "qf" then
             return false
           end
@@ -133,6 +162,9 @@ return {
             return false
           end
           local ft = vim.bo[bufnr].filetype
+          if formatting_disabled(bufnr) then
+            return false
+          end
           if ft == "aerial" or ft == "NvimTree" or ft == "alpha" or ft == "help" or ft == "qf" then
             return false
           end
@@ -175,12 +207,12 @@ return {
       quiet = true,
     },
     formatters_by_ft = {
-      -- Clojure
+      -- Clojure formatting is controlled by clojure_formatting_enabled above.
       clojure = { "zprint" },
       cljc = { "zprint" },
       cljs = { "zprint" },
       edn = { "zprint" },
-      
+
       -- Python
       python = { "isort", "black" },
       
@@ -195,6 +227,10 @@ return {
       
       -- Rust
       rust = { "rustfmt" },
+
+      -- PHP and Java
+      php = { "php_cs_fixer" },
+      java = { "google_java_format" },
       
       -- Web
       html = { "prettier" },

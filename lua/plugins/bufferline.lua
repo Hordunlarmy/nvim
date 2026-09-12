@@ -16,6 +16,9 @@ return {
     { "<leader>bh", "<cmd>BufferLineCloseLeft<cr>", desc = "Close all to the left" },
   },
   config = function()
+    -- bufferline reads this option while installing its hover handler.
+    vim.o.mousemoveevent = true
+
     require("bufferline").setup({
       options = {
         mode = "buffers",
@@ -27,7 +30,21 @@ return {
         right_mouse_command = function(bufnum)
           require("bufdelete").bufdelete(bufnum, false)
         end,
-        left_mouse_command = "buffer %d",
+        -- If session restore already has this buffer visible in a window,
+        -- focus that window. Otherwise replace the current editor buffer.
+        -- Neither path creates a split.
+        left_mouse_command = function(bufnum)
+          for _, win in ipairs(vim.fn.win_findbuf(bufnum)) do
+            if vim.api.nvim_win_is_valid(win) then
+              local win_buf = vim.api.nvim_win_get_buf(win)
+              if vim.bo[win_buf].filetype ~= "NvimTree" and vim.bo[win_buf].filetype ~= "aerial" then
+                vim.api.nvim_set_current_win(win)
+                return
+              end
+            end
+          end
+          vim.api.nvim_set_current_buf(bufnum)
+        end,
         middle_mouse_command = nil,
         indicator = {
           icon = "▎",
@@ -86,35 +103,105 @@ return {
       },
     })
     
-    -- Force all bufferline backgrounds to be completely transparent
+    -- Keep inactive tabs transparent, but give the current tab an obvious
+    -- contrast so it remains easy to spot in a dense buffer list.
+    local function apply_bufferline_highlights()
+      local normal_bg = vim.fn.synIDattr(vim.fn.synIDtrans(vim.fn.hlID("Normal")), "bg")
+      if normal_bg == "" then normal_bg = "NONE" end
+
+      local inactive = { bg = normal_bg, fg = "#94a3b8" }
+      local visible = { bg = normal_bg, fg = "#cbd5e1" }
+      local selected_bg = "#334155"
+      local selected = { bg = selected_bg, fg = "#f8fafc", bold = true }
+
+      vim.api.nvim_set_hl(0, "BufferLineFill", { bg = normal_bg })
+      vim.api.nvim_set_hl(0, "BufferLineBackground", inactive)
+      vim.api.nvim_set_hl(0, "BufferLineBufferVisible", visible)
+      vim.api.nvim_set_hl(0, "BufferLineBufferSelected", selected)
+      vim.api.nvim_set_hl(0, "BufferLineIndicatorSelected", { bg = selected_bg, fg = "#7dd3fc" })
+      vim.api.nvim_set_hl(0, "BufferLineSeparator", { bg = normal_bg, fg = normal_bg })
+      vim.api.nvim_set_hl(0, "BufferLineSeparatorVisible", { bg = normal_bg, fg = normal_bg })
+      vim.api.nvim_set_hl(0, "BufferLineSeparatorSelected", { bg = selected_bg, fg = selected_bg })
+      vim.api.nvim_set_hl(0, "BufferLineTab", inactive)
+      vim.api.nvim_set_hl(0, "BufferLineTabSelected", selected)
+      vim.api.nvim_set_hl(0, "BufferLineTabClose", { bg = normal_bg })
+      vim.api.nvim_set_hl(0, "BufferLineCloseButton", { bg = normal_bg, fg = "#888888" })
+      vim.api.nvim_set_hl(0, "BufferLineCloseButtonVisible", { bg = normal_bg, fg = "#aab4c4" })
+      vim.api.nvim_set_hl(0, "BufferLineCloseButtonSelected", { bg = selected_bg, fg = "#f87171" })
+      vim.api.nvim_set_hl(0, "BufferLineModified", inactive)
+      vim.api.nvim_set_hl(0, "BufferLineModifiedVisible", visible)
+      vim.api.nvim_set_hl(0, "BufferLineModifiedSelected", { bg = selected_bg, fg = "#fbbf24" })
+    end
+
+    local highlight_group = vim.api.nvim_create_augroup("BufferLineUserHighlights", { clear = true })
     vim.api.nvim_create_autocmd({ "ColorScheme", "VimEnter" }, {
-      callback = function()
-        vim.defer_fn(function()
-          -- Get Normal background (will be NONE if transparent)
-          local normal_bg = vim.fn.synIDattr(vim.fn.synIDtrans(vim.fn.hlID("Normal")), "bg")
-          if normal_bg == "" then
-            normal_bg = "NONE"
-          end
-          
-          vim.cmd("highlight! BufferLineFill guibg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineBackground guibg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineBufferSelected guibg=" .. normal_bg .. " gui=bold")
-          vim.cmd("highlight! BufferLineBufferVisible guibg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineSeparator guibg=" .. normal_bg .. " guifg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineSeparatorSelected guibg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineSeparatorVisible guibg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineTab guibg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineTabSelected guibg=" .. normal_bg .. " gui=bold")
-          vim.cmd("highlight! BufferLineTabClose guibg=" .. normal_bg)
-          -- Close buttons always visible
-          vim.cmd("highlight! BufferLineCloseButton guifg=#888888 guibg=" .. normal_bg)  -- Gray X
-          vim.cmd("highlight! BufferLineCloseButtonVisible guifg=#888888 guibg=" .. normal_bg)  -- Gray X
-          vim.cmd("highlight! BufferLineCloseButtonSelected guifg=#ff5555 guibg=" .. normal_bg)  -- Red X on selected
-          vim.cmd("highlight! BufferLineModified guibg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineModifiedVisible guibg=" .. normal_bg)
-          vim.cmd("highlight! BufferLineModifiedSelected guibg=" .. normal_bg)
-        end, 100)
-      end,
+      group = highlight_group,
+      callback = function() vim.schedule(apply_bufferline_highlights) end,
+    })
+    apply_bufferline_highlights()
+
+    -- bufferline itself uses mouse hover only to reveal controls.  Add a small,
+    -- non-focusable tooltip with the complete path of the hovered file tab.
+    local tooltip_win
+    local tooltip_path
+
+    local function close_path_tooltip()
+      if tooltip_win and vim.api.nvim_win_is_valid(tooltip_win) then
+        vim.api.nvim_win_close(tooltip_win, true)
+      end
+      tooltip_win = nil
+      tooltip_path = nil
+    end
+
+    local function show_path_tooltip()
+      local hovered = require("bufferline.state").hovered
+      local bufnr = hovered and tonumber(hovered.id)
+      if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+        return close_path_tooltip()
+      end
+
+      local path = vim.api.nvim_buf_get_name(bufnr)
+      if path == "" then path = "[No file name]" end
+      if path == tooltip_path and tooltip_win and vim.api.nvim_win_is_valid(tooltip_win) then return end
+      close_path_tooltip()
+
+      local max_width = math.max(vim.o.columns - 4, 1)
+      local width = math.min(math.max(vim.api.nvim_strwidth(path), math.min(30, max_width)), max_width)
+      local tooltip_buf = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(tooltip_buf, 0, -1, false, { path })
+      vim.bo[tooltip_buf].modifiable = false
+
+      local mouse = vim.fn.getmousepos()
+      tooltip_win = vim.api.nvim_open_win(tooltip_buf, false, {
+        relative = "editor",
+        row = 1,
+        col = math.max(0, math.min(mouse.screencol - 1, vim.o.columns - width - 2)),
+        width = width,
+        height = 1,
+        style = "minimal",
+        border = "rounded",
+        focusable = false,
+        noautocmd = true,
+        zindex = 80,
+      })
+      vim.wo[tooltip_win].winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder"
+      tooltip_path = path
+    end
+
+    local tooltip_group = vim.api.nvim_create_augroup("BufferLinePathTooltip", { clear = true })
+    vim.api.nvim_create_autocmd("User", {
+      group = tooltip_group,
+      pattern = "BufferLineHoverOver",
+      callback = show_path_tooltip,
+    })
+    vim.api.nvim_create_autocmd("User", {
+      group = tooltip_group,
+      pattern = "BufferLineHoverOut",
+      callback = close_path_tooltip,
+    })
+    vim.api.nvim_create_autocmd("VimLeavePre", {
+      group = tooltip_group,
+      callback = close_path_tooltip,
     })
   end,
 }

@@ -7,22 +7,35 @@ return {
     {
       "<leader>gt",
       function()
-        require("util.git_popup").show_unified_diff_popup()
+        require("gitsigns").diffthis()
       end,
-      desc = "Git diff this (popup)",
+      desc = "Git diff this side by side",
     },
     {
       "<leader>gT",
       function()
-        require("util.git_popup").show_unified_diff_popup({ rev = "~" })
+        require("gitsigns").diffthis("~1")
       end,
-      desc = "Git diff this ~ (popup)",
+      desc = "Git diff this vs previous commit side by side",
+    },
+    {
+      "<leader>gc",
+      function()
+        require("gitsigns").diffthis("HEAD")
+      end,
+      desc = "Git diff all uncommitted vs HEAD side by side",
     },
   },
   config = function()
-    local git_popup = require("util.git_popup")
-
     require("gitsigns").setup({
+      diffthis = { vertical = true, split = "aboveleft" },
+      current_line_blame = false,
+      current_line_blame_opts = {
+        virt_text = true,
+        virt_text_pos = "eol",
+        delay = 0,
+        use_focus = true,
+      },
       signs = {
         add = { text = "│" },
         change = { text = "│" },
@@ -62,13 +75,14 @@ return {
         map('n', '<leader>gu', gs.undo_stage_hunk, { desc = "Git undo stage" })
         map('n', '<leader>gra', gs.reset_buffer, { desc = "Git reset all (buffer)" })
         map('n', '<leader>gp', gs.preview_hunk, { desc = "Git preview hunk" })
-        map('n', '<leader>gb', gs.blame, { desc = "Git blame buffer" })
+        map('n', '<leader>gb', gs.toggle_current_line_blame, { desc = "Toggle inline Git blame" })
         map('n', '<leader>gB', function() gs.blame_line { full = true } end, { desc = "Git blame line (popup)" })
-        map('n', '<leader>gt', function() git_popup.show_unified_diff_popup({ bufnr = bufnr }) end, { desc = "Git diff this (popup)" })
-        map('n', '<leader>gT', function() git_popup.show_unified_diff_popup({ bufnr = bufnr, rev = "~" }) end, { desc = "Git diff this ~ (popup)" })
+        map('n', '<leader>gt', gs.diffthis, { desc = "Git diff this side by side" })
+        map('n', '<leader>gT', function() gs.diffthis("~1") end, { desc = "Git diff this vs previous commit side by side" })
+        map('n', '<leader>gc', function() gs.diffthis("HEAD") end, { desc = "Git diff all uncommitted vs HEAD side by side" })
         
         -- Toggle
-        map('n', '<leader>tb', gs.toggle_current_line_blame, { desc = "Toggle git blame" })
+        map('n', '<leader>tb', gs.toggle_current_line_blame, { desc = "Toggle inline Git blame" })
         map('n', '<leader>tg', gs.toggle_deleted, { desc = "Toggle git deleted" })
       end
     })

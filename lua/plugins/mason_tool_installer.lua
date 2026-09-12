@@ -10,13 +10,18 @@ return {
       "stylua",       -- Lua formatter
       "black",        -- Python formatter
       "isort",        -- Python import sorter
+		  "ruff",         -- Python linter
       "shfmt",        -- Shell script formatter
+		  "php-cs-fixer", -- PHP formatter
+		  "google-java-format", -- Java formatter
       
       -- Linters
       "eslint_d",     -- JS/TS linter (fast)
       "pylint",       -- Python linter
       "shellcheck",   -- Shell script linter
       "markdownlint", -- Markdown linter
+		  "golangci-lint", -- Go linter
+		  "phpcs",        -- PHP linter
       
       -- Clojure
       "clj-kondo",    -- Clojure linter
@@ -38,4 +43,3 @@ return {
     debounce_hours = 5, -- at least 5 hours between attempts
   },
 }
-

@@ -131,11 +131,21 @@ local config = function()
 		single_file_support = true,
 	})
 
-	-- python
-	setup_server("jedi_language_server", {
+	-- Python: type checking, imports, and project-aware diagnostics.
+	setup_server("basedpyright", {
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "python" },
+		root_dir = compat_root_dir(root_pattern("pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", ".git")),
+		settings = {
+			basedpyright = {
+				analysis = {
+					autoSearchPaths = true,
+					useLibraryCodeForTypes = true,
+					diagnosticMode = "workspace",
+				},
+			},
+		},
 	})
 
 	-- php
@@ -143,6 +153,28 @@ local config = function()
 		capabilities = capabilities,
 		on_attach = on_attach,
 		filetypes = { "php" },
+		root_dir = compat_root_dir(root_pattern("composer.json", ".git")),
+	})
+
+	-- Java
+	setup_server("jdtls", {
+		capabilities = capabilities,
+		on_attach = on_attach,
+		filetypes = { "java" },
+		root_dir = compat_root_dir(root_pattern("pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts", ".git")),
+	})
+
+	-- Rust: rust-analyzer also runs Clippy checks when files are saved.
+	setup_server("rust_analyzer", {
+		capabilities = capabilities,
+		on_attach = on_attach,
+		filetypes = { "rust" },
+		root_dir = compat_root_dir(root_pattern("Cargo.toml", "rust-project.json", ".git")),
+		settings = {
+			["rust-analyzer"] = {
+				check = { command = "clippy" },
+			},
+		},
 	})
 
 	-- typescript
@@ -201,7 +233,7 @@ local config = function()
 			gopls = {
 				usePlaceholders = true,
 				completeUnimported = true,
-				staticcheck = false,
+				staticcheck = true,
 				analyses = {
 					unusedparams = true,
 					shadow = true,
@@ -231,7 +263,7 @@ local config = function()
 	setup_server("clojure_lsp", {
 		capabilities = capabilities,
 		on_attach = on_attach,
-		filetypes = { "clojure", "edn" },
+		filetypes = { "clojure", "clojurescript", "clojurec", "edn" },
 		cmd = { "clojure-lsp" },
 		cmd_env = {
 			CLJ_KONDO_CACHE = clj_kondo_cache,
@@ -241,9 +273,9 @@ local config = function()
 			if path:match("conjure%-log%-") then
 				return nil
 			end
+			-- Do not start a second clojure-lsp for dependency or JAR source files.
+			-- The project client can navigate to them; they are not standalone projects.
 			return clojure_root(path)
-				or lspconfig_util.find_git_ancestor(path)
-				or lspconfig_util.path.dirname(path)
 		end),
 		on_new_config = function(new_config, new_root_dir)
 			if not new_root_dir or new_root_dir == "" then
@@ -258,7 +290,7 @@ local config = function()
 			env.CLJ_KONDO_CACHE = clj_kondo_cache
 			new_config.cmd_env = env
 		end,
-		single_file_support = true,
+		single_file_support = false,
 		-- Let clojure-lsp discover classpath from project tooling defaults.
 	})
 
@@ -277,22 +309,31 @@ local config = function()
 				table.insert(filetypes, "lua")
 			end
 			
-			-- Python (flake8)
-			if vim.fn.executable("flake8") == 1 then
+			-- Python (Ruff; fall back to flake8 when Ruff is unavailable)
+			if vim.fn.executable("ruff") == 1 then
+				local ruff = require("efmls-configs.linters.ruff")
+				languages.python = { ruff }
+				table.insert(filetypes, "python")
+			elseif vim.fn.executable("flake8") == 1 then
 				local flake8 = require("efmls-configs.linters.flake8")
 				languages.python = { flake8 }
 				table.insert(filetypes, "python")
 			end
 			
-			-- JavaScript/TypeScript (eslint) - already installed
-			if vim.fn.executable("eslint") == 1 then
-				local eslint = require("efmls-configs.linters.eslint")
+			-- JavaScript/TypeScript (prefer eslint_d for fast project-aware linting).
+			if vim.fn.executable("eslint_d") == 1 then
+				local eslint = require("efmls-configs.linters.eslint_d")
 				languages.javascript = { eslint }
 				languages.typescript = { eslint }
 				languages.markdown = { eslint }
 				languages.html = { eslint }
 				languages.css = { eslint }
 				vim.list_extend(filetypes, { "javascript", "typescript", "markdown", "html", "css" })
+			elseif vim.fn.executable("eslint") == 1 then
+				local eslint = require("efmls-configs.linters.eslint")
+				languages.javascript = { eslint }
+				languages.typescript = { eslint }
+				vim.list_extend(filetypes, { "javascript", "typescript" })
 			end
 			
 			-- Docker (hadolint)

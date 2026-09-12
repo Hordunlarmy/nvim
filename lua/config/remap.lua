@@ -2,6 +2,12 @@
 -- change leader key to space
 vim.g.mapleader = " "
 
+-- Global exit shortcuts. These act on the whole Neovim instance, not merely
+-- the current split or buffer. They are deliberately normal-mode mappings so
+-- capital Q/W retain their familiar "quit" and "write then quit" meanings.
+vim.keymap.set("n", "Q", "<cmd>qa<cr>", { noremap = true, silent = true, desc = "Quit Neovim (all buffers)" })
+vim.keymap.set("n", "W", "<cmd>wqa<cr>", { noremap = true, silent = true, desc = "Save all and quit Neovim" })
+
 -- GLOBAL diagnostic keybindings (work everywhere, not just LSP buffers)
 vim.keymap.set('n', '<leader>do', function()
 	local diagnostics = vim.diagnostic.get(0, { lnum = vim.fn.line('.') - 1 })
@@ -381,19 +387,19 @@ local function ensure_gitsigns_loaded()
   return false
 end
 
--- Full-buffer git blame view for the current file.
+-- Toggle subtle blame text for only the cursor line.
 vim.keymap.set('n', '<leader>gb', function()
   if not ensure_gitsigns_loaded() then
     vim.notify("gitsigns is unavailable", vim.log.levels.WARN)
     return
   end
   local ok, gs = pcall(require, "gitsigns")
-  if ok and type(gs.blame) == "function" then
-    gs.blame()
+  if ok and type(gs.toggle_current_line_blame) == "function" then
+    gs.toggle_current_line_blame()
     return
   end
-  vim.notify("Git blame is unavailable", vim.log.levels.WARN)
-end, { noremap = true, silent = true, desc = "Git blame buffer" })
+  vim.notify("Inline Git blame is unavailable", vim.log.levels.WARN)
+end, { noremap = true, silent = true, desc = "Toggle inline Git blame" })
 
 -- Toggle diagnostics for the current buffer (works for any filetype/source).
 vim.keymap.set('n', '<leader>dt', function()

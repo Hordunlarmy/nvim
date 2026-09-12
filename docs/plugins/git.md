@@ -18,9 +18,15 @@ Gitsigns shows git changes in the gutter and provides hunk operations for stagin
 - `leader gu` undo stage hunk
 - `leader gra` reset buffer
 - `leader gp` preview hunk
-- `leader gb` blame line
-- `leader gt` diff this
-- `leader gT` diff this ~
+- `leader gb` toggle inline blame for the cursor line
+- `leader gB` blame current line (full popup)
+- `leader gc` diff all uncommitted changes against `HEAD`
+- `leader gt` diff unstaged changes side by side
+- `leader gT` diff this against the previous commit side by side
 
 ## Notes
-Gitsigns loads on file open and does not block startup.
+Gitsigns loads on file open and does not block startup. The side-by-side diff
+views use Neovim's native diff mode. `leader gt` compares against the index;
+`leader gc` compares the current file against `HEAD`, including staged and
+unstaged changes. `leader gb` shows subtle grey blame text only for the line
+under the cursor.

@@ -7,6 +7,8 @@ local config = function()
       "highlight NvimTreeWinSeparator guibg=NONE ctermbg=NONE",
       "highlight NvimTreeVertSplit guibg=NONE ctermbg=NONE",
       "highlight WinSeparator guifg=#8B8B8B guibg=NONE",
+      "highlight NvimTreeCursorLine guibg=#334155",
+      "highlight NvimTreeOpenedFolderName guifg=#7DD3FC gui=bold",
     }
 
     for _, cmd in ipairs(commands) do
@@ -29,6 +31,9 @@ local config = function()
     renderer = {
       full_name = true,
       group_empty = true,
+      -- Do not colour every loaded buffer; the cursor line below tracks only
+      -- the file in the active editor window.
+      highlight_opened_files = "none",
       special_files = {},
       symlink_destination = false,
       indent_markers = {
@@ -146,6 +151,28 @@ local config = function()
   })
 
   apply_tree_highlights()
+
+  -- NvimTree's built-in opened-file marker can lag behind bufferline changes.
+  -- Resync against the actual current buffer without moving focus to the tree.
+  local sync_group = vim.api.nvim_create_augroup("NvimTreeFollowCurrentBuffer", { clear = true })
+  local function sync_current_file(bufnr)
+    -- The event may be scheduled after a temporary buffer has been deleted.
+    -- Never index vim.bo or call the tree API for such a buffer.
+    if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return end
+    if not vim.api.nvim_buf_is_loaded(bufnr) then return end
+    if vim.bo[bufnr].buftype ~= "" or vim.bo[bufnr].filetype == "NvimTree" then return end
+    if vim.api.nvim_buf_get_name(bufnr) == "" then return end
+    local ok, api = pcall(require, "nvim-tree.api")
+    if ok then pcall(api.tree.find_file, { buf = bufnr, open = false, focus = false }) end
+  end
+  vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
+    group = sync_group,
+    callback = function(args)
+      local bufnr = args.buf
+      vim.schedule(function() sync_current_file(bufnr) end)
+    end,
+  })
+  vim.schedule(function() sync_current_file(vim.api.nvim_get_current_buf()) end)
 end
 
 return {

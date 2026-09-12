@@ -3,7 +3,7 @@ local opts = {
 		"efm",                  -- General purpose language server for linting and formatting
 		"bashls",               -- Bash scripts
 		"ts_ls",                -- TypeScript and JavaScript
-		"jedi_language_server", -- Python (alternative: "pyright")
+		"basedpyright",         -- Python analysis, imports, type checking
 		"lua_ls",               -- Lua (essential for Neovim config)
 		"emmet_ls",             -- HTML and CSS expansion
 		"jsonls",               -- JSON
@@ -14,10 +14,10 @@ local opts = {
 		"marksman",             -- Markdown
 		"gopls",                -- Go language server (for Go support)
 		"clojure_lsp",          -- Clojure language server
+		"intelephense",         -- PHP language server
+		"jdtls",                -- Java language server
+		"rust_analyzer",        -- Rust language server
 		"sqls",                 -- SQL language server
-		-- "clangd",            -- C and C++ (uncomment if needed)
-		-- "intelephense",      -- PHP (uncomment if needed)
-		-- "rust_analyzer",     -- Rust (uncomment if needed)
 	},
 
 	automatic_installation = true, -- Automatically install language servers

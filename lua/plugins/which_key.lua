@@ -1,26 +1,19 @@
 -- which-key: displays a popup with possible key bindings
-local telescope_float = require("config.telescope_float")
-
 local function open_keymaps_picker(opts)
   opts = opts or {}
-  local anchor_win = vim.api.nvim_get_current_win()
-  local anchor_w = vim.api.nvim_win_get_width(anchor_win)
-  local anchor_h = vim.api.nvim_win_get_height(anchor_win)
-  local theme = require("telescope.themes").get_dropdown({
-    prompt_title = opts.prompt_title or "Keymaps (search by key, desc, plugin)",
+  require("telescope.builtin").keymaps({
+    prompt_title = opts.prompt_title or "Search keymaps",
     default_text = opts.default_text,
+    show_plug = false,
     previewer = false,
-    layout_strategy = "center",
+    sorting_strategy = "ascending",
+    layout_strategy = "vertical",
     layout_config = {
-      width = math.max(40, math.floor(anchor_w * 0.9)),
-      height = math.max(10, math.floor(anchor_h * 0.72)),
+      width = 0.72,
+      height = 0.60,
+      prompt_position = "top",
     },
   })
-
-  require("telescope.builtin").keymaps(vim.tbl_extend("force", theme, {
-    show_plug = false,
-  }))
-  telescope_float.defer_retarget(anchor_win)
 end
 
 return {
@@ -183,9 +176,9 @@ return {
       { "<leader>qw", desc = "Save session NOW" },
       
       -- Search/Replace (grug-far)
-      { "<leader>sr", desc = "Search & Replace" },
-      { "<leader>sw", desc = "Search word under cursor" },
-      { "<leader>sf", desc = "Search in current file" },
+      { "<leader>sr", desc = "Search & Replace (choose scope)" },
+      { "<leader>sw", desc = "Replace word under cursor (project)" },
+      { "<leader>sf", desc = "Search & Replace (current buffer)" },
       
       -- Terminal (alphabetically sorted)
       { "<leader>tf", desc = "Float terminal" },
@@ -209,7 +202,7 @@ return {
       { "<leader>un", desc = "Dismiss notifications" },
       { "<leader>uN", desc = "Fix line numbers" },
       { "<leader>uP", desc = "Buffer plugin inspector" },
-      { "<leader>tb", desc = "Toggle git blame" },
+      { "<leader>tb", desc = "Toggle inline Git blame" },
       { "<leader>tg", desc = "Toggle git deleted" },
       
       -- Markdown
@@ -236,14 +229,16 @@ return {
       { "<leader>xl", desc = "Location list" },
       
       -- Git (gitsigns) - using <leader>g prefix
-      { "<leader>gb", desc = "Git blame buffer" },
+      { "<leader>gb", desc = "Toggle inline Git blame" },
+      { "<leader>gB", desc = "Git blame line (popup)" },
+      { "<leader>gc", desc = "Git diff all uncommitted vs HEAD" },
       { "<leader>gp", desc = "Git preview hunk" },
       { "<leader>gr", desc = "Git reset hunk", mode = { "n", "v" } },
       { "<leader>gra", desc = "Git reset all (buffer)" },
       { "<leader>gs", desc = "Git stage hunk", mode = { "n", "v" } },
       { "<leader>gsa", desc = "Git stage all (buffer)" },
-      { "<leader>gt", desc = "Git diff this" },
-      { "<leader>gT", desc = "Git diff this ~" },
+      { "<leader>gt", desc = "Git diff this side by side" },
+      { "<leader>gT", desc = "Git diff this vs previous commit side by side" },
       { "<leader>gu", desc = "Git undo stage" },
       { "]h", desc = "Next git hunk" },
       { "[h", desc = "Previous git hunk" },
@@ -281,11 +276,17 @@ return {
       { "<leader>dd", desc = "Delete line (no copy)", mode = { "n", "v" } },
       { "<leader>nd", desc = "Next diagnostic" },
       { "<leader>pd", desc = "Previous diagnostic" },
+
+      -- Notes (under Markdown)
+      { "<leader>mn", desc = "Notes: open global note" },
+      { "<leader>mf", desc = "Notes: search all notes" },
+      { "<leader>mg", desc = "Notes: search note contents" },
       
       -- Goto/LSP (under <leader>g)
-      { "<leader>gd", desc = "LSP peek definition" },
-      { "<leader>gD", desc = "LSP goto definition" },
-      { "<leader>gS", desc = "LSP goto def (split)" },
+      { "<leader>gd", desc = "LSP go to definition" },
+      { "<leader>gD", desc = "LSP preview definition" },
+      { "<leader>gC", desc = "LSP go to declaration" },
+      { "<leader>gS", desc = "LSP definition in vertical split" },
       
       -- Window navigation (built-in)
       { "<C-h>", desc = "Window left" },

@@ -36,6 +36,10 @@ function M.show_unified_diff_popup(opts)
     vim.notify("No file to diff", vim.log.levels.WARN)
     return false
   end
+  if vim.bo[bufnr].modified then
+    vim.notify("Save the current file before opening its Git diff", vim.log.levels.WARN)
+    return false
+  end
 
   git_root_for_file_async(file, function(root)
     if not root then
@@ -58,7 +62,11 @@ function M.show_unified_diff_popup(opts)
       progress_label = "Computing git diff",
     }, function(result)
       if result.code ~= 0 then
-        vim.notify("git diff failed for current file", vim.log.levels.ERROR)
+        local reason = (result.stderr or ""):gsub("%s+$", "")
+        vim.notify(
+          reason ~= "" and ("git diff failed: " .. reason) or "git diff failed for current file",
+          vim.log.levels.ERROR
+        )
         return
       end
 

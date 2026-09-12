@@ -383,8 +383,11 @@ Language-aware - automatically uses correct comment syntax (`//`, `#`, `--`, `/*
 - `<leader>gr` - Git reset hunk (works in visual mode too!)
 - `<leader>gra` - Git reset all (entire buffer)
 - `<leader>gp` - Git preview hunk (popup)
-- `<leader>gb` - Git blame line (full)
-- `<leader>gt` - Git diff this
+- `<leader>gb` - Toggle inline blame for the cursor line
+- `<leader>gB` - Git blame current line (full popup)
+- `<leader>gc` - Git diff all uncommitted changes vs HEAD
+- `<leader>gt` - Git diff this side by side
+- `<leader>gT` - Git diff this vs previous commit side by side
 - `<leader>gu` - Git undo stage hunk
 - `<leader>tb` - Toggle inline git blame
 - `<leader>tg` - Toggle show deleted lines
